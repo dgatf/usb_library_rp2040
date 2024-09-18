@@ -1,0 +1,5 @@
+{
+    "cmake.options.statusBarVisibility" : "visible",
+    "C_Cpp.autoAddFileAssociations": false,
+    "C_Cpp.default.compilerPath": "/usr/bin/arm-none-eabi-gcc",
+}
