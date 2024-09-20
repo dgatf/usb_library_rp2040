@@ -14,7 +14,6 @@ It is compatible with the [SDK](https://raspberrypi.github.io/pico-sdk-doxygen/)
 
 - No USB host. If needed USB host, use Tinyusb library.  
 - USB classes not implemented. Implement the class yourself or use Tinyusb lbrary.   
-- Isochronous packet size 1024 cant be used, as maximum size for RP2040 is 1023. This is a HW limitation (issue?).  
 
 ## Usage
 
@@ -23,9 +22,14 @@ How to use it:
 - Add *usb.h, usb.c, usb_common.h, usb_config.h and usb_config.c* to your project. 
 - If using SDK, add the required libraries (pico_stdlib, hardware_irq) to your CMakeLists.txt. See [CMakeLists.txt](src/CMakeLists.txt)
 - Modify *usb_config.h* and *usb_config.c* to configure endpoints, handlers and buffers. Do not modify EP0 endpoints.   
-- Use bInterval to adjust polling rate. 0 default, 1 fastest, 16 slowest.  
+- Use *bInterval* to adjust polling rate. 0 default, 1 fastest, 16 slowest.  
 - If endpoint *data_buffer* is NULL, endpoint callback is called every *wMaxPacketSize* to read/write the buffer. This allows data streaming. If is not NULL *data_buffer*, endpoint callback is called at the end of transfer.  
 - If transfer size is *UNKNOWN_SIZE*, transfer continues until short packet is received or, if sending, when transfer is cancelled.  
+- Isochronous packet size 1024 ca not be used as maximum size for RP2040 is 1023. This is a HW limitation (issue?).  
+- *wMaxPacketSize* must be multiple of 64.  
+- Double buffer can be used with *wMaxPacketSize* 64, 128, 256 and 512. 128, 256, and 512 is only for isochronous transfers.  
+- Maximum speed for bulk transfer is with *double_buffer=true* and *bInterval=1*.  
+- Maximum speed for isochronous transfer is with *double_buffer=false*, *bInterval=1* and *wMaxPacketSize=960*.  
 
 ### Functions:  
 

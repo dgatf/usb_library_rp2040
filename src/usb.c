@@ -18,7 +18,6 @@
 #include "pico/stdlib.h"
 #include "usb_config.c"
 
-#define UNKNOWN_SIZE -1
 #define ISOCHRONOUS_MASK 0x18000000u
 
 #define usb_hw_set ((usb_hw_t *)hw_set_alias_untyped(usb_hw))
@@ -54,7 +53,6 @@ static bool should_set_address = false;
 static uint8_t dev_addr = 0;
 static volatile bool configured = false;
 static uint buf_cpu_should_handle;
-static uint val2;
 
 void isr_usbctrl(void) {
     uint32_t status = usb_hw->ints;
@@ -149,11 +147,13 @@ static void setup_endpoint(struct usb_endpoint_configuration *ep) {
     ep->endpoint_control = get_endpoint_control(ep);
     ep->buffer_control = get_buffer_control(ep);
     ep->dpram_buffer_a = get_dpram_buffer(ep);
+    ep->status = STATUS_OK;
     if (ep->double_buffer)
         ep->dpram_buffer_b = ep->dpram_buffer_a + ep->descriptor->wMaxPacketSize;
     else
         ep->dpram_buffer_b = NULL;
     if (!is_ep0(ep)) {
+        interface_descriptor.bNumEndpoints++;
         uint32_t dpram_offset = buffer_offset(ep->dpram_buffer_a);
         uint32_t reg = EP_CTRL_ENABLE_BITS | (ep->descriptor->bmAttributes << EP_CTRL_BUFFER_TYPE_LSB) |
                        (ep->double_buffer ? EP_CTRL_DOUBLE_BUFFERED_BITS : 0) | EP_CTRL_INTERRUPT_PER_BUFFER |
@@ -163,6 +163,7 @@ static void setup_endpoint(struct usb_endpoint_configuration *ep) {
 }
 
 static void setup_endpoints(void) {
+    interface_descriptor.bNumEndpoints = 0;
     struct usb_endpoint_configuration *endpoints = dev_config.endpoints;
     for (int i = 0; i < USB_NUM_ENDPOINTS; i++) {
         if (endpoints[i].descriptor && (endpoints[i].handler)) {
@@ -398,7 +399,9 @@ static void handle_ep_buff_done(struct usb_endpoint_configuration *ep) {
         if (ep->data_buffer && ep->handler) ep->handler((uint8_t *)ep->data_buffer, ep->lenght);
         if (ep->status != STATUS_OK) usb_cancel_transfer(ep);
     } else {
-        if (ep->lenght == UNKNOWN_SIZE || ep->pos_send < ep->lenght) start_data_packet(ep);
+        if ((ep->lenght == UNKNOWN_SIZE || ep->pos_send < ep->lenght) && ep->data_buffer) {
+            start_data_packet(ep);
+        }
     }
 }
 
@@ -519,3 +522,4 @@ void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
 }
 
 uint8_t usb_get_address(void) { return dev_addr; }
+
