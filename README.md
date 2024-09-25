@@ -14,6 +14,7 @@ It is compatible with the [SDK](https://raspberrypi.github.io/pico-sdk-doxygen/)
 
 - No USB host. If needed USB host, use Tinyusb library.  
 - USB classes not implemented. Implement the class yourself or use Tinyusb lbrary.   
+- Only one configuration and one interface.  
 
 ## Usage
 

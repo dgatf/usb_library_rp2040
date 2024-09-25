@@ -516,8 +516,8 @@ void usb_init_transfer(struct usb_endpoint_configuration *ep, int32_t len) {
 void usb_continue_transfer(struct usb_endpoint_configuration *ep) { start_data_packet(ep); }
 
 void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
-    usb_hw_clear->buf_status = 0xFFFF;
-    usb_hw_clear->buf_status = 0xFFFF;
+    usb_hw_clear->buf_status = ep->bit;
+    usb_hw_clear->buf_status = ep->bit;
     ep->buffer_control = 0;
 }
 
