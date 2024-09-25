@@ -262,8 +262,8 @@ static void handle_setup_packet(void) {
     }
     if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, 0);
     if (!pkt->wLength)
-        if (bmRequestType & USB_DIR_OUT)
-            acknowledge_out_request();
+        if (bmRequestType & USB_DIR_IN)
+            acknowledge_in_request();
         else
             acknowledge_out_request();
     else
