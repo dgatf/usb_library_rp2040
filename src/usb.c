@@ -166,7 +166,7 @@ static void setup_endpoints(void) {
     interface_descriptor.bNumEndpoints = 0;
     struct usb_endpoint_configuration *endpoints = dev_config.endpoints;
     for (int i = 0; i < USB_NUM_ENDPOINTS; i++) {
-        if (endpoints[i].descriptor && (endpoints[i].handler)) {
+        if (endpoints[i].descriptor) {
             setup_endpoint(&endpoints[i]);
         }
     }
