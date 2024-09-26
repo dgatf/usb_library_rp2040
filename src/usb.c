@@ -28,7 +28,6 @@ static uint8_t prepare_string_descriptor(const unsigned char *str);
 static inline uint32_t buffer_offset(volatile uint8_t *buf);
 static void setup_endpoint(struct usb_endpoint_configuration *ep);
 static void setup_endpoints(void);
-static void set_device_address(volatile struct usb_setup_packet *pkt);
 static void set_device_configuration(volatile struct usb_setup_packet *pkt);
 static void handle_device_descriptor(volatile struct usb_setup_packet *pkt);
 static void handle_config_descriptor(volatile struct usb_setup_packet *pkt);
@@ -49,7 +48,6 @@ static volatile uint32_t *get_endpoint_control(struct usb_endpoint_configuration
 static volatile uint32_t *get_buffer_control(struct usb_endpoint_configuration *ep);
 static volatile uint8_t *get_dpram_buffer(struct usb_endpoint_configuration *ep);
 
-static bool should_set_address = false;
 static uint8_t dev_addr = 0;
 static volatile bool configured = false;
 static uint buf_cpu_should_handle;
@@ -88,7 +86,6 @@ static inline bool ep_is_tx(struct usb_endpoint_configuration *ep) {
 
 static void bus_reset(void) {
     dev_addr = 0;
-    should_set_address = false;
     usb_hw->dev_addr_ctrl = 0;
     configured = false;
     // printf("\nBus Reset");
@@ -172,12 +169,6 @@ static void setup_endpoints(void) {
     }
 }
 
-static void set_device_address(volatile struct usb_setup_packet *pkt) {
-    dev_addr = (pkt->wValue & 0xff);
-    // Will set address in the callback phase
-    should_set_address = true;
-}
-
 static void set_device_configuration(volatile struct usb_setup_packet *pkt) { configured = true; }
 
 static void handle_device_descriptor(volatile struct usb_setup_packet *pkt) {
@@ -235,7 +226,7 @@ static void handle_setup_packet(void) {
     usb_get_endpoint_configuration(EP0_OUT_ADDR)->next_pid = 1u;
     if (bmRequestType == USB_DIR_OUT) {
         if (req == USB_REQUEST_SET_ADDRESS) {
-            set_device_address(pkt);
+            dev_addr = (pkt->wValue & 0xff);
             handled = true;
         } else if (req == USB_REQUEST_SET_CONFIGURATION) {
             set_device_configuration(pkt);
@@ -260,7 +251,7 @@ static void handle_setup_packet(void) {
             }
         }
     }
-    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, 0);
+    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_SETUP);
     if (!pkt->wLength)
         if (bmRequestType & USB_DIR_IN)
             acknowledge_in_request();
@@ -411,7 +402,6 @@ static void handle_buff_done(uint ep_num, bool in) {
         struct usb_endpoint_configuration *ep = &dev_config.endpoints[i];
         if (ep->descriptor && ep->handler) {
             if (ep->descriptor->bEndpointAddress == ep_addr) {
-                bool double_buffer = false;
                 handle_ep_buff_done(ep);
                 return;
             }
@@ -455,22 +445,25 @@ static void prepare_control_packet(volatile struct usb_setup_packet *pkt) {
 }
 
 static void ep0_in_handler(uint8_t *buf, uint16_t len) {
-    if (should_set_address) {
-        usb_hw->dev_addr_ctrl = dev_addr;
-        should_set_address = false;
-    }
-    if (!len) return;
-    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP0_OUT_ADDR);
     volatile struct usb_setup_packet *pkt = (volatile struct usb_setup_packet *)&usb_dpram->setup_packet;
-    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, 1);
+    if (!len) {  // Ack out request done
+        if (pkt->bRequest == USB_REQUEST_SET_ADDRESS) {
+            usb_hw->dev_addr_ctrl = dev_addr;
+        }
+        if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_STATUS);
+        return;
+    }
+    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_DATA);
     acknowledge_in_request();
 }
 
 static void ep0_out_handler(uint8_t *buf, uint16_t len) {
-    if (!len) return;
-    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP0_OUT_ADDR);
     volatile struct usb_setup_packet *pkt = (volatile struct usb_setup_packet *)&usb_dpram->setup_packet;
-    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, 1);
+    if (!len) {  // Ack in request done
+        if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_STATUS);
+        return;
+    }
+    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_DATA);
     acknowledge_out_request();
 }
 
@@ -522,4 +515,3 @@ void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
 }
 
 uint8_t usb_get_address(void) { return dev_addr; }
-

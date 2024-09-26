@@ -58,7 +58,7 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
     }
 
     // Data stage
-    else {
+    else if (stage == STAGE_DATA) {
         if (pkt->bmRequestType == USB_DIR_IN) {
             if (pkt->bRequest == USB_REQUEST_GET_DESCRIPTOR) {
                 uint16_t descriptor_type = pkt->wValue >> 8;

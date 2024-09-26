@@ -22,6 +22,7 @@ extern "C" {
 
 #define STAGE_SETUP 0
 #define STAGE_DATA 1
+#define STAGE_STATUS 2
 #define STATUS_OK 0
 #define STATUS_BUSY 1
 #define STATUS_BUFFER_OVERFLOW 2
