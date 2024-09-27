@@ -8,7 +8,7 @@ A fast and lightweight USB device library:
 - Double buffered.
 - Interrupt driven.
 
-It is compatible with the [SDK](https://raspberrypi.github.io/pico-sdk-doxygen/) and [Arduino](https://github.com/earlephilhower/arduino-pico).
+It is compatible with the [SDK](https://raspberrypi.github.io/pico-sdk-doxygen/).
 
 ## Limitations
 
@@ -21,7 +21,7 @@ It is compatible with the [SDK](https://raspberrypi.github.io/pico-sdk-doxygen/)
 How to use it:
 
 - Add *usb.h, usb.c, usb_common.h, usb_config.h and usb_config.c* to your project. 
-- If using SDK, add the required libraries (pico_stdlib, hardware_irq) to your CMakeLists.txt. See [CMakeLists.txt](src/CMakeLists.txt)
+- Add the required libraries (pico_stdlib, hardware_irq) to your CMakeLists.txt. See [CMakeLists.txt](src/CMakeLists.txt)
 - Modify *usb_config.h* and *usb_config.c* to configure endpoints, handlers and buffers. Do not modify EP0 endpoints.   
 - Use *bInterval* to adjust polling rate. 0 default, 1 fastest, 16 slowest.  
 - If endpoint *data_buffer* is NULL, endpoint callback is called every *wMaxPacketSize* to read/write the buffer. This allows data streaming. If is not NULL *data_buffer*, endpoint callback is called at the end of transfer.  
