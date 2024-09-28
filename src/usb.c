@@ -400,7 +400,7 @@ static void handle_buff_done(uint ep_num, bool in) {
     uint8_t ep_addr = ep_num | (in ? USB_DIR_IN : 0);
     for (uint i = 0; i < USB_NUM_ENDPOINTS; i++) {
         struct usb_endpoint_configuration *ep = &dev_config.endpoints[i];
-        if (ep->descriptor && ep->handler) {
+        if (ep->descriptor) {
             if (ep->descriptor->bEndpointAddress == ep_addr) {
                 handle_ep_buff_done(ep);
                 return;
