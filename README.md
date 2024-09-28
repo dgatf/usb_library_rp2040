@@ -10,12 +10,6 @@ A fast and lightweight USB device library:
 
 It is compatible with the [SDK](https://raspberrypi.github.io/pico-sdk-doxygen/).
 
-## Limitations
-
-- No USB host. If needed USB host, use Tinyusb library.  
-- USB classes not implemented. Implement the class yourself or use Tinyusb lbrary.   
-- Only one configuration and one interface.  
-
 ## Usage
 
 How to use it:
@@ -115,6 +109,12 @@ BULK IN: 73.69 %
 This library outperforms significantly Tinyusb for BULK and EP0 OUT. Isochronous and interrupt transfers are not supported by Tinyusb.  
 
 For this linbrary isochronous transfers `(bInterval=1, wMaxPacketSize=512)` maximum speed is 480kBs and interrupt transfers `(bInterval=1, wMaxPacketSize=64)` 62kBs.  
+
+## Limitations
+
+- No USB host. If needed USB host, use Tinyusb library.  
+- USB classes not implemented. Implement the class yourself or use Tinyusb lbrary.   
+- Only one configuration and one interface.  
 
 ## References
 
