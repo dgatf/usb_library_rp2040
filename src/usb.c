@@ -368,7 +368,7 @@ static void handle_ep_buff_done(struct usb_endpoint_configuration *ep) {
             ep->status = STATUS_LENGHT_OVERFLOW;
             ep->is_completed = true;
         }
-        if (ep->lenght != UNKNOWN_SIZE && ep->data_buffer && ep->pos + len > ep->data_buffer_size) {
+        if (ep->lenght != UNKNOWN_SIZE && ep->data_buffer && (ep->pos + len > ep->data_buffer_size)) {
             len = ep->data_buffer_size - ep->pos;
             ep->status = STATUS_BUFFER_OVERFLOW;
             ep->is_completed = true;
@@ -382,15 +382,15 @@ static void handle_ep_buff_done(struct usb_endpoint_configuration *ep) {
         }
     }
     //  Handle end of transfer
-    if (len < ep->descriptor->wMaxPacketSize ||
-        (is_ep0(ep) && len == ep->descriptor->wMaxPacketSize && ep->lenght == ep->pos) || ep->status != STATUS_BUSY) {
+    if (len < ep->descriptor->wMaxPacketSize || (len == ep->descriptor->wMaxPacketSize && ep->lenght == ep->pos) ||
+        ep->status != STATUS_BUSY) {
         ep->lenght = ep->pos;
         ep->is_completed = true;
         if (ep->status == STATUS_BUSY) ep->status = STATUS_OK;
         if (ep->data_buffer && ep->handler) ep->handler((uint8_t *)ep->data_buffer, ep->lenght);
         if (ep->status != STATUS_OK) usb_cancel_transfer(ep);
     } else {
-        if ((ep->lenght == UNKNOWN_SIZE || ep->pos_send < ep->lenght) && ep->data_buffer) {
+        if (ep->data_buffer && (ep->pos_send < ep->lenght || ep->lenght == UNKNOWN_SIZE)) {
             start_data_packet(ep);
         }
     }
