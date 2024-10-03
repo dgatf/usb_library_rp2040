@@ -25,24 +25,24 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_requ
         if (request->bmRequestType_bit.type) {
             if (request->bRequest == REQ_EP0_IN) {
                 for (uint i = 0; i < request->wLength; i++) buffer[i] = i;
-                printf("\nSending EP0 IN lenght %u", request->wLength);
+                printf("\nSending EP0 IN length %u", request->wLength);
             }
             return tud_control_xfer(rhport, request, (void *)(uintptr_t)&buffer, request->wLength);
         }
         return false;
     } else if (stage == CONTROL_STAGE_DATA) {
         if (request->bRequest == REQ_EP0_OUT) {
-            printf("\nReceived EP0 OUT lenght %u\n", request->wLength);
+            printf("\nReceived EP0 OUT length %u\n", request->wLength);
             // for (uint i = 0; i < request->wLength; i++) printf("%u ", buffer[i]);
         }
         if (request->bRequest == REQ_EP1_OUT) {
             uint length = buffer[0] + (buffer[1] << 8);
-            printf("\nReceiving EP1 OUT lenght %u", length);
+            printf("\nReceiving EP1 OUT length %u", length);
             ep1_out_length = length;
         }
         if (request->bRequest == REQ_EP2_IN) {
             uint length = buffer[0] + (buffer[1] << 8);
-            printf("\nSending EP2 IN lenght %u", length);
+            printf("\nSending EP2 IN length %u", length);
             for (uint i = 0; i < length; i++) buffer[i] = i;
             send_ep2 = true;
             ep2_in_length = length;
@@ -58,13 +58,13 @@ int main() {
 
     while (1) {
         tud_task();
-        uint lenght;
+        uint length;
         if (tud_vendor_n_available(0))
         {
             tud_vendor_n_read(0, buffer, tud_vendor_n_available(0));
         }
         //if (send_ep2) {
-        //    uint lenght = tud_vendor_n_write(0, buffer, ep2_in_length);
+        //    uint length = tud_vendor_n_write(0, buffer, ep2_in_length);
         //    send_ep2 = false;
         //}
 

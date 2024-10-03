@@ -76,20 +76,20 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
             }
         } else if (pkt->bmRequestType & USB_REQ_TYPE_TYPE_VENDOR) {
             if (pkt->bRequest == REQ_EP0_OUT) {
-                printf("\nReceived request REQ_EP0_OUT, lenght %u", pkt->wLength);
+                printf("\nReceived request REQ_EP0_OUT, length %u", pkt->wLength);
                 //for (uint i = 0; i < pkt->wLength; i++) printf("%u ", buf[i]);
             } else if (pkt->bRequest == REQ_EP0_IN) {
-                printf("\nSent request REQ_EP0_IN, lenght %u", pkt->wLength);
+                printf("\nSent request REQ_EP0_IN, length %u", pkt->wLength);
             } else if (pkt->bRequest == REQ_EP1_OUT) {
-                int lenght = (uint32_t)buf[0] | ((uint32_t)buf[1] << 8);
-                printf("\nReceived request REQ_EP1_OUT. Start EP1 OUT %i", lenght);
+                int length = (uint32_t)buf[0] | ((uint32_t)buf[1] << 8);
+                printf("\nReceived request REQ_EP1_OUT. Start EP1 OUT %i", length);
                 struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP1_OUT_ADDR);
-                usb_init_transfer(ep, lenght);
+                usb_init_transfer(ep, length);
             } else if (pkt->bRequest == REQ_EP2_IN) {
-                int lenght = (uint32_t)buf[0] | ((uint32_t)buf[1] << 8);
-                printf("\nReceived request REQ_EP2_IN. Start EP2 IN %i", lenght);
+                int length = (uint32_t)buf[0] | ((uint32_t)buf[1] << 8);
+                printf("\nReceived request REQ_EP2_IN. Start EP2 IN %i", length);
                 struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP2_IN_ADDR);
-                usb_init_transfer(ep, lenght);
+                usb_init_transfer(ep, length);
             }
         }
     }

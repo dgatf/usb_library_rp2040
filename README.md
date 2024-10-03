@@ -41,7 +41,7 @@ Starts a transfer.
 
 Parameters:  
 &nbsp;&nbsp;**ep** - endpoint  
-&nbsp;&nbsp;**len** - transfer lenght  
+&nbsp;&nbsp;**len** - transfer length  
 \
 **void usb_continue_transfer(struct usb_endpoint_configuration \*ep)**
 
