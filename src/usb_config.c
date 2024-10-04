@@ -12,10 +12,6 @@ static uint8_t ep0_buf[4096];
 static uint8_t ep1_buf[40000];
 static uint8_t ep2_buf[40000];
 
-void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pkt, uint8_t stage);
-void ep1_out_handler(uint8_t *buf, uint16_t len);
-void ep2_in_handler(uint8_t *buf, uint16_t len);
-
 static struct usb_device_configuration dev_config = {.device_descriptor = &device_descriptor,
                                                      .interface_descriptor = &interface_descriptor,
                                                      .config_descriptor = &config_descriptor,

@@ -38,6 +38,10 @@ extern "C" {
 typedef void (*usb_ep_handler)(uint8_t *buf, uint16_t len);
 typedef void (*usb_control_transfer_handler)(uint8_t *buf, volatile struct usb_setup_packet *pkt, uint8_t stage);
 
+void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pkt, uint8_t stage);
+void ep1_out_handler(uint8_t *buf, uint16_t len);
+void ep2_in_handler(uint8_t *buf, uint16_t len);
+
 static const struct usb_endpoint_descriptor ep0_out = {.bLength = sizeof(struct usb_endpoint_descriptor),
                                                        .bDescriptorType = USB_DT_ENDPOINT,
                                                        .bEndpointAddress = EP0_OUT_ADDR,
