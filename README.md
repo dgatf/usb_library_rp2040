@@ -79,6 +79,24 @@ Returns true if the device is configured.
 
 Returns the device address.  
 
+### Callback functions:
+
+**void control_transfer_handler(uint8_t \*buf, volatile struct usb_setup_packet \*pkt, uint8_t stage)**
+
+Called when a setup packet is received. It has three stages: setup, data and status.  
+
+Parameters:  
+&nbsp;&nbsp;**buf** - ep0 data buffer  
+&nbsp;&nbsp;**pkt** - the setup packet    
+&nbsp;&nbsp;**stage** - STAGE_SETUP, STAGE_DATA or STAGE_STATUS  
+\
+**void ep_handler(uint8_t \*buf, uint16_t len)**
+
+Called at the end of transfer for buffered endpoints or every wMaxPacketSize when streaming (not buffered ).  
+
+&nbsp;&nbsp;**buf** - buffer to read/write.    
+&nbsp;&nbsp;**len** - length of the data.  
+\
 ## Tinyusb comparison
 
 Comparing output values from [usb_speed_test.py](utils/usb_speed_test.py) for both implementations, this library versus Tinyusb (as of [09/17/2024](https://github.com/hathach/tinyusb/tree/f4dd1764849d005a2e44d51f62428aeaf2513804)), we get the following results:
@@ -106,9 +124,8 @@ EP0 IN: -1.72 %
 BULK OUT 131.10 %
 BULK IN: 73.69 %
 ```
-This library outperforms significantly Tinyusb for BULK and EP0 OUT. Isochronous and interrupt transfers are not supported by Tinyusb.  
+This library outperforms Tinyusb for BULK and EP0 OUT. Isochronous and interrupt transfers are not supported by Tinyusb.  
 
-For this linbrary isochronous transfers `(bInterval=1, wMaxPacketSize=512)` maximum speed is 480kBs and interrupt transfers `(bInterval=1, wMaxPacketSize=64)` 62kBs.  
 
 ## Limitations
 
