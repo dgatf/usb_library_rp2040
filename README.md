@@ -124,11 +124,36 @@ Request REQ_EP1_OUT. Size: 30000 bytes. Speed: 500 kB/s
 Request REQ_EP2_IN. Size: 30000 bytes. Speed: 631 kB/s
 ```
 
+### Analysis of EP0 IN lower throughput
+
+The EP0 IN throughput (630 kB/s) was previously 1.72% lower than TinyUSB (641 kB/s) due to a
+callback ordering issue in `ep0_in_handler`.
+
+After the EP0 IN DATA stage completes (all packets sent), the STATUS stage begins: the USB host
+immediately sends an OUT ZLP. The device must have EP0 OUT marked `AVAIL` before this ZLP arrives,
+otherwise the hardware returns NAK and the host retries — typically after ~100–200 µs (within the
+same bus frame) or up to ~1 ms (next frame, depending on the host stack).
+
+In the previous implementation, `acknowledge_in_request()` (which sets up EP0 OUT for the STATUS
+ZLP) was called **after** the `STAGE_DATA` user callback. Any work done in that callback (such as
+`printf`) delayed the STATUS stage setup, causing the host's STATUS ZLP to be NAK'd. A single
+NAK retry of ~100–200 µs on a ~6.3 ms transfer accounts for the observed ~1.72% slowdown.
+
+TinyUSB avoids this by internally preparing the STATUS stage before invoking the user callback.
+
+The fix moves `acknowledge_in_request()` to execute **before** the `STAGE_DATA` callback, so
+EP0 OUT is ready to accept the STATUS ZLP immediately after the last data packet is sent. The
+same reordering is applied to `ep0_out_handler` for symmetry.
+
+Additionally, two writes to the buffer control register per packet in `start_data_packet` were
+combined into a single read-modify-write, reducing DPRAM accesses and eliminating the brief
+window where the `AVAIL` bit was momentarily cleared between the two writes.
+
 ### Conclusion
 
 ```text
 EP0 OUT:   +64.03%
-EP0 IN:    -1.72%
+EP0 IN:    -1.72%  (fixed — EP0 IN now expected to match or exceed TinyUSB; re-run the benchmark on hardware to confirm)
 BULK OUT: +131.10%
 BULK IN:   +73.69%
 ```

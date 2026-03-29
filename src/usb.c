@@ -313,16 +313,14 @@ static void start_data_packet(struct usb_endpoint_configuration *ep) {
             if (!ep->is_start) *ep->buffer_control |= USB_BUF_CTRL_AVAIL << 16;
         } else
             val |= USB_BUF_CTRL_AVAIL;
-        *ep->buffer_control &= ~0xFFFF;
-        *ep->buffer_control |= val;
+        *ep->buffer_control = (*ep->buffer_control & ~(uint32_t)0xFFFF) | val;
     } else {
         if (ep->double_buffer && !ep->data_buffer) {
             *ep->buffer_control |= USB_BUF_CTRL_AVAIL;
         } else
             val |= USB_BUF_CTRL_AVAIL;
         val |= (ep->descriptor->wMaxPacketSize >> 8) << 11;
-        *ep->buffer_control &= ~0xFFFF0000;
-        *ep->buffer_control |= val << 16;
+        *ep->buffer_control = (*ep->buffer_control & (uint32_t)0xFFFF) | (val << 16);
     }
 
     if (len > ep->descriptor->wMaxPacketSize ||
@@ -345,8 +343,7 @@ static void start_data_packet(struct usb_endpoint_configuration *ep) {
         val |= (ep->next_pid ? USB_BUF_CTRL_DATA1_PID : USB_BUF_CTRL_DATA0_PID);
         val |= (ep->descriptor->wMaxPacketSize >> 8) << 11;
         ep->next_pid ^= 1u;
-        *ep->buffer_control &= ~0xFFFF0000;
-        *ep->buffer_control |= val << 16;
+        *ep->buffer_control = (*ep->buffer_control & (uint32_t)0xFFFF) | (val << 16);
     }
     ep->pos_send += len;
     ep->is_start = false;
@@ -464,8 +461,8 @@ static void ep0_in_handler(uint8_t *buf, uint16_t len) {
         if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_STATUS);
         return;
     }
-    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_DATA);
     acknowledge_in_request();
+    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_DATA);
 }
 
 static void ep0_out_handler(uint8_t *buf, uint16_t len) {
@@ -474,8 +471,8 @@ static void ep0_out_handler(uint8_t *buf, uint16_t len) {
         if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_STATUS);
         return;
     }
-    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_DATA);
     acknowledge_out_request();
+    if (dev_config.control_transfer_handler) control_transfer_handler(ep0_buf, pkt, STAGE_DATA);
 }
 
 struct usb_endpoint_configuration *usb_get_endpoint_configuration(uint8_t addr) {
@@ -523,7 +520,7 @@ void usb_continue_transfer(struct usb_endpoint_configuration *ep) { start_data_p
 void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
     usb_hw_clear->buf_status = ep->bit;
     usb_hw_clear->buf_status = ep->bit;
-    ep->buffer_control = 0;
+    *ep->buffer_control = 0;
 }
 
 uint8_t usb_get_address(void) { return dev_addr; }
