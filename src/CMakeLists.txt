@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
 project(usb_device C CXX ASM)
@@ -22,4 +24,4 @@ target_link_libraries(${PROJECT_NAME}
     pico_stdlib
     hardware_irq
 )
- 
+

@@ -41,7 +41,6 @@ static void acknowledge_out_request(void);
 static void acknowledge_in_request(void);
 static void prepare_control_packet(volatile struct usb_setup_packet *pkt);
 static void ep0_in_handler(uint8_t *buf, uint16_t len);
-static void ep0_in_handler(uint8_t *buf, uint16_t len);
 static inline uint get_ep_bit(struct usb_endpoint_configuration *ep);
 static inline bool is_ep0(struct usb_endpoint_configuration *ep);
 static volatile uint32_t *get_endpoint_control(struct usb_endpoint_configuration *ep);
@@ -344,6 +343,8 @@ static void start_data_packet(struct usb_endpoint_configuration *ep) {
         val |= (ep->descriptor->wMaxPacketSize >> 8) << 11;
         ep->next_pid ^= 1u;
         *ep->buffer_control = (*ep->buffer_control & (uint32_t)0xFFFF) | (val << 16);
+        if (ep->double_buffer && !ep->data_buffer)
+            *ep->buffer_control |= USB_BUF_CTRL_AVAIL << 16;
     }
     ep->pos_send += len;
     ep->is_start = false;
