@@ -309,10 +309,16 @@ static void start_data_packet(struct usb_endpoint_configuration *ep) {
     val |= ep->next_pid ? USB_BUF_CTRL_DATA1_PID : USB_BUF_CTRL_DATA0_PID;
     ep->next_pid ^= 1u;
     if (!(usb_hw->buf_cpu_should_handle & ep->bit) || ep->is_start) {
-        val |= USB_BUF_CTRL_AVAIL;
+        if (ep->double_buffer && !ep->data_buffer) {
+            if (!ep->is_start) *ep->buffer_control |= USB_BUF_CTRL_AVAIL << 16;
+        } else
+            val |= USB_BUF_CTRL_AVAIL;
         *ep->buffer_control = (*ep->buffer_control & ~(uint32_t)0xFFFF) | val;
     } else {
-        val |= USB_BUF_CTRL_AVAIL;
+        if (ep->double_buffer && !ep->data_buffer) {
+            *ep->buffer_control |= USB_BUF_CTRL_AVAIL;
+        } else
+            val |= USB_BUF_CTRL_AVAIL;
         val |= (ep->descriptor->wMaxPacketSize >> 8) << 11;
         *ep->buffer_control = (*ep->buffer_control & (uint32_t)0xFFFF) | (val << 16);
     }
@@ -320,7 +326,10 @@ static void start_data_packet(struct usb_endpoint_configuration *ep) {
     if (len > ep->descriptor->wMaxPacketSize ||
         (len == ep->descriptor->wMaxPacketSize * 2 && ep->length == ep->pos_send + len)) {
         val = len - ep->descriptor->wMaxPacketSize;
-        val |= USB_BUF_CTRL_AVAIL;
+        if (ep->double_buffer && !ep->data_buffer)
+            *ep->buffer_control |= USB_BUF_CTRL_AVAIL;
+        else
+            val |= USB_BUF_CTRL_AVAIL;
         if (ep_is_tx(ep)) {
             if (ep->data_buffer) {
                 memcpy((void *)ep->dpram_buffer_b,
@@ -391,7 +400,7 @@ static void handle_ep_buff_done(struct usb_endpoint_configuration *ep) {
         if (ep->data_buffer && ep->handler) ep->handler((uint8_t *)ep->data_buffer, ep->length);
         if (ep->status != STATUS_OK) usb_cancel_transfer(ep);
     } else {
-        if (ep->length == UNKNOWN_SIZE || ep->pos_send < ep->length) {
+        if ((ep->length == UNKNOWN_SIZE || ep->pos_send < ep->length) && ep->data_buffer) {
             start_data_packet(ep);
         }
     }
