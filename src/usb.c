@@ -269,7 +269,6 @@ static inline bool is_ep0(struct usb_endpoint_configuration *ep) {
 }
 
 static void start_data_packet(struct usb_endpoint_configuration *ep) {
-    if (ep->descriptor->bEndpointAddress == EP3_IN_ADDR) printf("\n>>>>>>>length 1.1: %d", ep->length);
     uint len;
     if (ep->double_buffer && ep->is_start)
         len = MIN(ep->length, ep->descriptor->wMaxPacketSize * 2);
@@ -334,12 +333,11 @@ static void start_data_packet(struct usb_endpoint_configuration *ep) {
             ep->pos_send += MIN(len, ep->descriptor->wMaxPacketSize);
         }
     }
+    
     ep->is_start = false;
-    if (ep->descriptor->bEndpointAddress == EP3_IN_ADDR) printf("\n>>>>>>>length 1.2: %d", ep->length);
 }
 
 static void handle_ep_buff_done(struct usb_endpoint_configuration *ep) {
-    if (ep->descriptor->bEndpointAddress == EP3_IN_ADDR) printf("\n>>>>>>>length 2.1: %d", ep->length);
     uint len;
     if (!ep->double_buffer) {
         len = *ep->buffer_control & USB_BUF_CTRL_LEN_MASK;
@@ -402,10 +400,8 @@ static void handle_ep_buff_done(struct usb_endpoint_configuration *ep) {
     ep->pos += len;
     usb_hw_clear->buf_status = ep->bit;
 
-    //printf("\n>>>pos: %d, pos_send: %d, length: %d", ep->pos, ep->pos_send, ep->length);
     if (len < ep->descriptor->wMaxPacketSize || (len == ep->descriptor->wMaxPacketSize && ep->length == ep->pos) ||
         ep->status != STATUS_BUSY) {
-        if (ep->descriptor->bEndpointAddress == EP3_IN_ADDR) printf("\nCompleted len %d, length %d, pos %d", len, ep->length, ep->pos);
         ep->length = ep->pos;
         ep->is_completed = true;
         if (ep->status == STATUS_BUSY) ep->status = STATUS_OK;
@@ -414,10 +410,8 @@ static void handle_ep_buff_done(struct usb_endpoint_configuration *ep) {
     } else {
         if ((ep->pos_send < ep->length)) {
             start_data_packet(ep);
-            //printf("\nContinue transfer. pos: %d, pos_send: %d, length: %d", ep->pos, ep->pos_send, ep->length);
         }
     }
-    if (ep->descriptor->bEndpointAddress == EP3_IN_ADDR) printf("\n>>>>>>>length 2.1: %d", ep->length);
 }
 
 static void handle_buff_done(uint ep_num, bool in) {
@@ -526,12 +520,9 @@ bool usb_init_transfer(struct usb_endpoint_configuration *ep, int32_t len) {
     ep->is_start = true;
     ep->is_completed = false;
     ep->status = STATUS_BUSY;
-    //printf("\n>>>length: %d", ep->length);
     start_data_packet(ep);
     return true;
 }
-
-void usb_continue_transfer(struct usb_endpoint_configuration *ep) { start_data_packet(ep); }
 
 void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
     usb_hw_clear->buf_status = ep->bit;

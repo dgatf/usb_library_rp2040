@@ -20,6 +20,7 @@ extern "C" {
 #define EP1_OUT_ADDR (USB_DIR_OUT | 1)
 #define EP2_IN_ADDR (USB_DIR_IN | 2)
 #define EP3_IN_ADDR (USB_DIR_IN | 3)
+#define EP4_OUT_ADDR (USB_DIR_OUT | 4)
 
 #define STAGE_SETUP 0
 #define STAGE_DATA 1
@@ -42,6 +43,7 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
 void ep1_out_handler(uint8_t *buf, uint16_t len);
 void ep2_in_handler(uint8_t *buf, uint16_t len);
 void ep3_in_handler(uint8_t *buf, uint16_t len);
+void ep4_out_handler(uint8_t *buf, uint16_t len);
 
 static const struct usb_endpoint_descriptor ep0_out = {.bLength = sizeof(struct usb_endpoint_descriptor),
                                                        .bDescriptorType = USB_DT_ENDPOINT,
@@ -74,6 +76,13 @@ static const struct usb_endpoint_descriptor ep2_in = {.bLength = sizeof(struct u
 static const struct usb_endpoint_descriptor ep3_in = {.bLength = sizeof(struct usb_endpoint_descriptor),
                                                       .bDescriptorType = USB_DT_ENDPOINT,
                                                       .bEndpointAddress = EP3_IN_ADDR,
+                                                      .bmAttributes = USB_TRANSFER_TYPE_BULK,
+                                                      .wMaxPacketSize = PACKET_SIZE_BULK,
+                                                      .bInterval = 1};
+
+static const struct usb_endpoint_descriptor ep4_out = {.bLength = sizeof(struct usb_endpoint_descriptor),
+                                                      .bDescriptorType = USB_DT_ENDPOINT,
+                                                      .bEndpointAddress = EP4_OUT_ADDR,
                                                       .bmAttributes = USB_TRANSFER_TYPE_BULK,
                                                       .wMaxPacketSize = PACKET_SIZE_BULK,
                                                       .bInterval = 1};

@@ -33,20 +33,26 @@ static struct usb_device_configuration dev_config = {.device_descriptor = &devic
                                                                    {
                                                                        .descriptor = &ep1_out,
                                                                        .handler = &ep1_out_handler,
-                                                                       .double_buffer = false,
+                                                                       .double_buffer = true,
                                                                        .data_buffer = ep1_buf,
                                                                        .data_buffer_size = sizeof(ep1_buf),
                                                                    },
                                                                    {
                                                                        .descriptor = &ep2_in,
                                                                        .handler = &ep2_in_handler,
-                                                                       .double_buffer = false,
+                                                                       .double_buffer = true,
                                                                        .data_buffer = ep2_buf,
                                                                        .data_buffer_size = sizeof(ep2_buf),
                                                                    },
                                                                    {
                                                                        .descriptor = &ep3_in,
                                                                        .handler = &ep3_in_handler,
-                                                                       .double_buffer = false,
+                                                                       .double_buffer = true,
+                                                                       .data_buffer = NULL,
+                                                                   },
+                                                                {
+                                                                       .descriptor = &ep4_out,
+                                                                       .handler = &ep4_out_handler,
+                                                                       .double_buffer = true,
                                                                        .data_buffer = NULL,
                                                                    }}};

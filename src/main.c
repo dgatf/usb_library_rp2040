@@ -17,15 +17,15 @@
 #define REQ_EP1_OUT 0X02
 #define REQ_EP2_IN 0X03
 #define REQ_EP3_IN 0X04
+#define REQ_EP4_OUT 0X05
 
-uint8_t *ep0_buf, *ep2_buf, *ep3_buf;
+uint8_t *ep0_buf, *ep2_buf;
 
 int main(void) {
     stdio_init_all();
     printf("\n\nUSB Device example");
     ep0_buf = usb_get_endpoint_configuration(EP0_OUT_ADDR)->data_buffer;
     ep2_buf = usb_get_endpoint_configuration(EP2_IN_ADDR)->data_buffer;
-    //ep3_buf = usb_get_endpoint_configuration(EP3_IN_ADDR)->data_buffer;
 
     for (uint i = 0; i < usb_get_endpoint_configuration(EP2_IN_ADDR)->data_buffer_size; i++) {
         ep2_buf[i] = i;
@@ -96,6 +96,11 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
                 printf("\nReceived request REQ_EP3_IN. Start EP3 IN %i", length);
                 struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP3_IN_ADDR);
                 usb_init_transfer(ep, length);
+            } else if (pkt->bRequest == REQ_EP4_OUT) {
+                int length = (uint32_t)buf[0] | ((uint32_t)buf[1] << 8);
+                printf("\nReceived request REQ_EP4_OUT. Start EP4 OUT %i", length);
+                struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP4_OUT_ADDR);
+                usb_init_transfer(ep, length);
             }
         }
     }
@@ -109,6 +114,14 @@ void ep1_out_handler(uint8_t *buf, uint16_t len) {
 void ep2_in_handler(uint8_t *buf, uint16_t len) { printf("\nEP2 IN sent %d bytes to host", len); }
 
 void ep3_in_handler(uint8_t *buf, uint16_t len) {
-    printf("\nEP3 IN sent %d bytes to host", len);
-    //for (uint i = 0; i < len; i++) buf[i] = i;
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP3_IN_ADDR);
+    //printf("\nEP3 IN sent %d bytes to host. Total  %d", len, ep->pos);
+    for (uint i = 0; i < len; i++) buf[i] = i;
+}
+
+void ep4_out_handler(uint8_t *buf, uint16_t len) {
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP4_OUT_ADDR);
+    //printf("\nEP4 OUT received %d bytes from host. Total  %d", len, ep->pos);
+    uint8_t data[len];
+    memcpy(data, buf, len);
 }
