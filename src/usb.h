@@ -18,7 +18,7 @@ extern "C" {
 
 void usb_device_init(void);
 bool usb_is_configured(void);
-void usb_init_transfer(struct usb_endpoint_configuration *ep, int32_t len);
+bool usb_init_transfer(struct usb_endpoint_configuration *ep, int32_t len);
 void usb_continue_transfer(struct usb_endpoint_configuration *ep);
 bool usb_is_transfer_completed(struct usb_endpoint_configuration *ep);
 void usb_cancel_transfer(struct usb_endpoint_configuration *ep);

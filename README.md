@@ -21,7 +21,6 @@ To use the library:
 - Configure endpoints, handlers, and buffers in `usb_config.h` and `usb_config.c`. Do not modify the EP0 endpoints.
 - Use `bInterval` to adjust the polling interval: `0` = default, `1` = fastest, `16` = slowest.
 - If `data_buffer` is `NULL`, the endpoint callback is called for every `wMaxPacketSize` packet so the application can read or write data incrementally. This allows streaming. If `data_buffer` is not `NULL`, the callback is called when the transfer completes.
-- If the transfer size is `UNKNOWN_SIZE`, the transfer continues until a short packet is received or, for IN transfers, until the transfer is cancelled.
 - Isochronous packet size 1024 cannot be used, because the RP2040 hardware limit is 1023 bytes.
 - `wMaxPacketSize` must be a multiple of 64.
 - Double buffering can be used with `wMaxPacketSize` values of 64, 128, 256, and 512. Sizes 128, 256, and 512 are supported only for isochronous transfers.
@@ -39,7 +38,6 @@ Initializes the USB peripheral in device mode.
 Starts a transfer.
 
 - If the endpoint buffer is `NULL`, an interrupt is generated for every packet so the application can read or write data incrementally. Otherwise, the transfer continues until `len` bytes have been transferred, and the endpoint interrupt is raised once the transfer completes. This does not apply to EP0.
-- If `len` is `UNKNOWN_SIZE`, packets are sent or received continuously until a short packet is received or the transfer is cancelled. This does not apply to EP0.
 
 Parameters:  
 `ep` - endpoint configuration  

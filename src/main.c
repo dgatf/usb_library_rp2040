@@ -16,14 +16,16 @@
 #define REQ_EP0_IN 0X01
 #define REQ_EP1_OUT 0X02
 #define REQ_EP2_IN 0X03
+#define REQ_EP3_IN 0X04
 
-uint8_t *ep0_buf, *ep2_buf;
+uint8_t *ep0_buf, *ep2_buf, *ep3_buf;
 
 int main(void) {
     stdio_init_all();
     printf("\n\nUSB Device example");
     ep0_buf = usb_get_endpoint_configuration(EP0_OUT_ADDR)->data_buffer;
     ep2_buf = usb_get_endpoint_configuration(EP2_IN_ADDR)->data_buffer;
+    //ep3_buf = usb_get_endpoint_configuration(EP3_IN_ADDR)->data_buffer;
 
     for (uint i = 0; i < usb_get_endpoint_configuration(EP2_IN_ADDR)->data_buffer_size; i++) {
         ep2_buf[i] = i;
@@ -49,8 +51,7 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
                 printf("\nSet address %u", usb_get_address());
             else if (pkt->bRequest == USB_REQUEST_SET_CONFIGURATION)
                 printf("\nDevice Enumerated");
-        }
-        else if (pkt->bmRequestType & USB_REQ_TYPE_TYPE_VENDOR) {
+        } else if (pkt->bmRequestType & USB_REQ_TYPE_TYPE_VENDOR) {
             if (pkt->bRequest == REQ_EP0_IN) {
                 for (uint i = 0; i < pkt->wLength; i++) buf[i] = i;
             }
@@ -77,7 +78,7 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
         } else if (pkt->bmRequestType & USB_REQ_TYPE_TYPE_VENDOR) {
             if (pkt->bRequest == REQ_EP0_OUT) {
                 printf("\nReceived request REQ_EP0_OUT, length %u", pkt->wLength);
-                //for (uint i = 0; i < pkt->wLength; i++) printf("%u ", buf[i]);
+                // for (uint i = 0; i < pkt->wLength; i++) printf("%u ", buf[i]);
             } else if (pkt->bRequest == REQ_EP0_IN) {
                 printf("\nSent request REQ_EP0_IN, length %u", pkt->wLength);
             } else if (pkt->bRequest == REQ_EP1_OUT) {
@@ -90,6 +91,11 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
                 printf("\nReceived request REQ_EP2_IN. Start EP2 IN %i", length);
                 struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP2_IN_ADDR);
                 usb_init_transfer(ep, length);
+            } else if (pkt->bRequest == REQ_EP3_IN) {
+                int length = (uint32_t)buf[0] | ((uint32_t)buf[1] << 8);
+                printf("\nReceived request REQ_EP3_IN. Start EP3 IN %i", length);
+                struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP3_IN_ADDR);
+                usb_init_transfer(ep, length);
             }
         }
     }
@@ -97,7 +103,12 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
 
 void ep1_out_handler(uint8_t *buf, uint16_t len) {
     printf("\nEP1 OUT received %d bytes from host", len);
-    //for (uint i = 0; i < len; i++) printf("%u ", buf[i]);
+    // for (uint i = 0; i < len; i++) printf("%u ", buf[i]);
 }
 
 void ep2_in_handler(uint8_t *buf, uint16_t len) { printf("\nEP2 IN sent %d bytes to host", len); }
+
+void ep3_in_handler(uint8_t *buf, uint16_t len) {
+    printf("\nEP3 IN sent %d bytes to host", len);
+    //for (uint i = 0; i < len; i++) buf[i] = i;
+}
