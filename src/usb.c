@@ -405,7 +405,12 @@ static void handle_ep_buff_done(struct usb_endpoint_configuration *ep) {
         ep->length = ep->pos;
         ep->is_completed = true;
         if (ep->status == STATUS_BUSY) ep->status = STATUS_OK;
-        if (ep->data_buffer && ep->handler) ep->handler((uint8_t *)ep->data_buffer, ep->length);
+        // if (ep->data_buffer && ep->handler) ep->handler((uint8_t *)ep->data_buffer, ep->length);
+        if (ep->handler)
+            if (ep->data_buffer)
+                ep->handler((uint8_t *)ep->data_buffer, ep->length);
+            else
+                ep->handler((uint8_t *)NULL, len);
         if (ep->status != STATUS_OK) usb_cancel_transfer(ep);
     } else {
         if ((ep->pos_send < ep->length)) {
@@ -527,6 +532,11 @@ bool usb_init_transfer(struct usb_endpoint_configuration *ep, int32_t len) {
     return true;
 }
 
+void usb_continue_transfer(struct usb_endpoint_configuration *ep) {
+    if (ep->is_completed) return;
+    start_data_packet(ep);
+}
+
 void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
     usb_hw_clear->buf_status = ep->bit;
     usb_hw_clear->buf_status = ep->bit;
@@ -534,8 +544,3 @@ void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
 }
 
 uint8_t usb_get_address(void) { return dev_addr; }
-
-void usb_continue_transfer(struct usb_endpoint_configuration *ep) {
-    if (ep->is_completed) return;
-    start_data_packet(ep);
-}
