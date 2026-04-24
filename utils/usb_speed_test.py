@@ -26,17 +26,22 @@ REQ_EP0_OUT = 0X00
 REQ_EP0_IN = 0X01
 REQ_EP1_OUT = 0X02
 REQ_EP2_IN = 0X03
+REQ_EP3_IN = 0X04
+REQ_EP4_OUT = 0X05
+
+EP1_OUT_ADDRESS = EP_DIR_OUT | 0x01
+EP2_IN_ADDRESS = EP_DIR_IN | 0x02
+EP3_IN_ADDRESS = EP_DIR_IN | 0x03
+EP4_OUT_ADDRESS = EP_DIR_OUT | 0x04
 
 # dev.ctrl_transfer(reqType, bReq, wVal, wIndex, [] or size)
 
-repeat = 1
+repeat = 10
 
 # Request EP0 OUT
 size = 4096
 kBs = 0
 buffer = ""
-size_buffer = [(size & 0xFF)]
-size_buffer.append(size >> 8)
 val = 0
 for i in range(size):
     buffer = buffer + str(val)
@@ -76,7 +81,7 @@ for i in range(size):
 for i in range(repeat):
     dev.ctrl_transfer(TYPE_VENDOR | EP_DIR_OUT, REQ_EP1_OUT, 0, 0, size_buffer)
     a = datetime.datetime.now()
-    dev.write(0x01, buffer)
+    dev.write(EP1_OUT_ADDRESS, buffer)
     b = datetime.datetime.now()
     c = b - a
     kBs += (size / 1024) / (c.microseconds / 1000000)
@@ -90,9 +95,45 @@ buffer.append(size >> 8)
 for i in range(repeat):
     dev.ctrl_transfer(TYPE_VENDOR | EP_DIR_OUT, REQ_EP2_IN, 0, 0, buffer)
     a = datetime.datetime.now()
-    response = dev.read(0x82, size)
+    response = dev.read(EP2_IN_ADDRESS, size)
     b = datetime.datetime.now()
     c = b - a
     kBs += (size / 1024) / (c.microseconds / 1000000)
 print("Request REQ_EP2_IN. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat))
+#print(response)"""
+
+# Request EP3 IN (stream)
+size = 30000
+kBs = 0
+buffer = [(size & 0xFF)]
+buffer.append(size >> 8)
+for i in range(repeat):
+    dev.ctrl_transfer(TYPE_VENDOR | EP_DIR_OUT, REQ_EP3_IN, 0, 0, buffer)
+    a = datetime.datetime.now()
+    response = dev.read(EP3_IN_ADDRESS, size)
+    b = datetime.datetime.now()
+    c = b - a
+    kBs += (size / 1024) / (c.microseconds / 1000000)
+print("Request REQ_EP3_IN stream. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat))
+#print(response)"""
+
+# Request EP4 OUT (stream)
+size = 30000
+kBs = 0
+buffer = ""
+size_buffer = [(size & 0xFF)]
+size_buffer.append(size >> 8)
+val = 0
+for i in range(size):
+    buffer = buffer + str(val)
+    val += 1
+    if (val == 10) : val = 0
+for i in range(repeat):
+    dev.ctrl_transfer(TYPE_VENDOR | EP_DIR_OUT, REQ_EP4_OUT, 0, 0, size_buffer)
+    a = datetime.datetime.now()
+    dev.write(EP4_OUT_ADDRESS, buffer)
+    b = datetime.datetime.now()
+    c = b - a
+    kBs += (size / 1024) / (c.microseconds / 1000000)
+print("Request REQ_EP4_OUT stream. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat))
 #print(response)"""

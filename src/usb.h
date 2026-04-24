@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 Daniel Gorbea
+ * Copyright (c) 2024-2026 Daniel Gorbea
  * 
  * Copyright (c) 2020 Raspberry Pi (Trading) Ltd. author of https://github.com/raspberrypi/pico-examples/tree/master/usb
  *
@@ -18,12 +18,11 @@ extern "C" {
 
 void usb_device_init(void);
 bool usb_is_configured(void);
-void usb_init_transfer(struct usb_endpoint_configuration *ep, int32_t len);
-void usb_continue_transfer(struct usb_endpoint_configuration *ep);
-bool usb_is_transfer_completed(struct usb_endpoint_configuration *ep);
+bool usb_init_transfer(struct usb_endpoint_configuration *ep, int32_t len);
 void usb_cancel_transfer(struct usb_endpoint_configuration *ep);
 struct usb_endpoint_configuration *usb_get_endpoint_configuration(uint8_t addr);
 uint8_t usb_get_address(void);
+void usb_continue_transfer(struct usb_endpoint_configuration *ep);
 
 #ifdef __cplusplus
 }

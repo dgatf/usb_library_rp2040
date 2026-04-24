@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 Daniel Gorbea
+ * Copyright (c) 2024-2026 Daniel Gorbea
  * 
  * Copyright (c) 2020 Raspberry Pi (Trading) Ltd. author of https://github.com/raspberrypi/pico-examples/tree/master/usb
  *
