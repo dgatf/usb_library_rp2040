@@ -98,8 +98,8 @@ struct usb_endpoint_configuration {
     bool double_buffer;
     uint8_t next_pid;
     int32_t length;
-    int32_t pos;
-    int32_t pos_send;
+    int32_t queued_pos;
+    int32_t completed_pos;
     bool is_start;
     bool is_completed;
     uint status;
