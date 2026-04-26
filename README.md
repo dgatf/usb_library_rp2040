@@ -5,8 +5,8 @@ A fast and lightweight USB device library for the RP2040.
 ## Features
 
 - Supports control, bulk, isochronous, and interrupt transfers
-- Supports fixed-length transfers and streaming transfers
-- Up to 1.17 MB/s for bulk and stream transfers
+- Supports fixed-length transfers and length-bounded streaming transfers
+- Around 1.1 MB/s for bulk and streaming transfers in the included benchmark
 - Supports up to 32 endpoints
 - Supports single and double buffering
 - Interrupt-driven
@@ -21,9 +21,12 @@ To use the library:
 - Add the required libraries (`pico_stdlib`, `hardware_irq`) to your `CMakeLists.txt`. See [`src/CMakeLists.txt`](src/CMakeLists.txt).
 - Configure endpoints, handlers, and buffers in `usb_config.h` and `usb_config.c`. Do not modify the EP0 endpoints.
 - Use `bInterval` to adjust the polling interval: `0` = default, `1` = fastest, `16` = slowest.
-- If `data_buffer` is not `NULL`, the transfer is buffered and continues until `len` bytes have been transferred. The endpoint callback is then called once when the transfer completes.
-- If `data_buffer` is `NULL`, the endpoint callback is called once per packet, allowing the application to read or write data incrementally. This enables streaming transfers.
-- Streaming transfers in this library still use a fixed total transfer length passed to `usb_init_transfer()`. The difference is that data is produced or consumed incrementally through the callback instead of a user-provided buffer.
+- If `data_buffer` is not `NULL`, the transfer is buffered and the endpoint callback is called once when the transfer completes.
+- If `data_buffer` is `NULL`, the endpoint callback is called once per packet, allowing the application to produce or consume data incrementally.
+- Streaming transfers are still length-bounded by the `len` value passed to `usb_init_transfer()`. The library does not implement infinite USB transfers.
+- For streaming OUT endpoints, the callback receives each packet from the host.
+- For streaming IN endpoints, the callback receives a DPRAM packet buffer that the application fills before the packet is sent.
+- Applications can build continuous streams by chaining fixed-length chunks and calling `usb_continue_transfer()` only when more data is available.
 - Isochronous packet size 1024 cannot be used, because the RP2040 hardware limit is 1023 bytes.
 - `wMaxPacketSize` must be a multiple of 64.
 - Double buffering can be used with `wMaxPacketSize` values of 64, 128, 256, and 512. Sizes 128, 256, and 512 are supported only for isochronous transfers.
@@ -47,11 +50,13 @@ Starts a transfer.
 
 Parameters:  
 `ep` - endpoint configuration  
-`len` - transfer lengthF
+`len` - transfer length
 
 ### `void usb_continue_transfer(struct usb_endpoint_configuration *ep)`
 
 Continues a transfer.
+
+For streaming transfers, this queues the next packet or buffer when the application has more data to send or is ready to receive more data. If the transfer has already been fully queued or completed, no new packet is queued.
 
 Parameters:  
 `ep` - endpoint configuration
@@ -94,11 +99,13 @@ Parameters:
 Endpoint callback.
 
 - For buffered endpoints (`data_buffer != NULL`), it is called once when the transfer completes.
-- For streaming endpoints (`data_buffer == NULL`), it is called once per packet so the application can incrementally read or write data.
+- For streaming OUT endpoints (`data_buffer == NULL`), it is called once per received packet. `buf` points to the received DPRAM packet buffer and `len` is the number of received bytes.
+- For streaming IN endpoints (`data_buffer == NULL`), it is called with a DPRAM packet buffer to fill before the packet is sent. `len` is the maximum number of bytes to write for that packet.
+- When a streaming transfer completes, the callback is called with `buf == NULL`.
 
 Parameters:  
 `buf` - buffer to read from or write to  
-`len` - number of valid data bytes
+`len` - number of valid data bytes for OUT transfers, or the packet capacity for IN transfers
 
 ## TinyUSB Comparison
 
@@ -109,12 +116,12 @@ Comparing the output of [`usb_speed_test.py`](utils/usb_speed_test.py) for both 
 ### This library
 
 ```text
-Request REQ_EP0_OUT. Size: 4096 bytes. Speed: 529 kB/s
-Request REQ_EP0_IN. Size: 4096 bytes. Speed: 431 kB/s
-Request REQ_EP1_OUT. Size: 30000 bytes. Speed: 1171 kB/s
-Request REQ_EP2_IN. Size: 30000 bytes. Speed: 1114 kB/s
-Request REQ_EP3_IN stream. Size: 30000 bytes. Speed: 1168 kB/s
-Request REQ_EP4_OUT stream. Size: 30000 bytes. Speed: 1172 kB/s
+Request REQ_EP0_OUT. Size: 4096 bytes. Speed: 520 kB/s
+Request REQ_EP0_IN. Size: 4096 bytes. Speed: 429 kB/s
+Request REQ_EP1_OUT. Size: 40000 bytes. Speed: 1093 kB/s
+Request REQ_EP2_IN. Size: 40000 bytes. Speed: 1109 kB/s
+Request REQ_EP3_IN stream. Size: 40000 bytes. Speed: 1091 kB/s
+Request REQ_EP4_OUT stream. Size: 40000 bytes. Speed: 1072 kB/s
 ```
 
 ### TinyUSB
@@ -129,15 +136,17 @@ Request REQ_EP2_IN. Size: 30000 bytes. Speed: 631 kB/s
 ### Conclusion
 
 ```text
-EP0 OUT:      +9.98%
-EP0 IN:      -32.76%
-BULK OUT:   +134.20%
-BULK IN:     +76.54%
+EP0 OUT:      +8.11%
+EP0 IN:      -33.07%
+BULK OUT:   +118.60%
+BULK IN:     +75.75%
 STREAM IN:   supported
 STREAM OUT:  supported
 ```
 
 In this benchmark, the library outperforms TinyUSB for bulk transfers and supports both IN and OUT streaming transfers. Isochronous and interrupt transfers are not supported by TinyUSB.
+
+Results may vary slightly depending on transfer size, endpoint configuration, and application-level stream rearming strategy.
 
 ## Limitations
 
