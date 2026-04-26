@@ -96,6 +96,7 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
                 printf("\nReceived request REQ_EP3_IN. Start EP3 IN %i", length);
                 struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP3_IN_ADDR);
                 usb_init_transfer(ep, length);
+                usb_continue_transfer(ep);
             } else if (pkt->bRequest == REQ_EP4_OUT) {
                 int length = (uint32_t)buf[0] | ((uint32_t)buf[1] << 8);
                 printf("\nReceived request REQ_EP4_OUT. Start EP4 OUT %i", length);
@@ -107,26 +108,40 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
 }
 
 void ep1_out_handler(uint8_t *buf, uint16_t len) {
-    printf("\nEP1 OUT received %d bytes from host", len);
-    // for (uint i = 0; i < len; i++) printf("%u ", buf[i]);
+    printf("\nEP1 OUT received %d bytes from host ", len);
+    //for (uint i = 0; i < len; i++) printf("%u ", buf[i]);
 }
 
 void ep2_in_handler(uint8_t *buf, uint16_t len) { printf("\nEP2 IN sent %d bytes to host", len); }
 
 void ep3_in_handler(uint8_t *buf, uint16_t len) {
     struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP3_IN_ADDR);
-    // printf("\nEP3 IN sent %d bytes to host. Total  %d", len, ep->pos);
+    static uint prev = 0;
     if (buf) {
-        for (uint i = 0; i < len; i++) buf[i] = i;
+        // printf("\nEP3 IN. Filled buffer %c with %d bytes to host. Total queued  %d", buf == ep->dpram_buffer_a ? 'A'
+        // : 'B', len, ep->queued_pos);
+        for (uint i = 0; i < len; i++) buf[i] = i + prev;
+        prev += len;
     } else {
-        usb_continue_transfer(ep);
-    }  
+        // printf("\nEP3 IN. Sent %d bytes to host. Total completed  %d", len, ep->completed_pos);
+        if (!ep->is_completed)
+            usb_continue_transfer(ep);
+        else
+            printf("\nEP3 IN transfer completed %d bytes sent to host", ep->completed_pos);
+    }
 }
 
 void ep4_out_handler(uint8_t *buf, uint16_t len) {
     struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP4_OUT_ADDR);
-    // printf("\nEP4 OUT received %d bytes from host. Total  %d", len, ep->pos);
     uint8_t data[len];
     memcpy(data, buf, len);
-    usb_continue_transfer(ep);
+    if (!ep->is_completed && ep->queued_pos < ep->length) {
+        //printf("\nEP4 OUT received %d bytes from host. Total  %d\n", len, ep->completed_pos);
+        //for (uint i = 0; i < len; i++) printf("%u ", data[i]);
+        usb_continue_transfer(ep);
+    } else {
+        printf("\nEP4 OUT transfer completed %d bytes received from host", ep->completed_pos);
+        printf("\nBC 0x%X", *ep->buffer_control);
+        //*ep->buffer_control = 0;
+    }
 }
