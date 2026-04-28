@@ -12,7 +12,7 @@ static uint8_t ep0_buf[4096];
 static uint8_t ep1_buf[40000];
 static uint8_t ep2_buf[40000];
 
-static struct usb_device_configuration dev_config = {
+struct usb_device_configuration dev_config = {
     .device_descriptor = &device_descriptor,
     .interface_descriptor = &interface_descriptor,
     .config_descriptor = &config_descriptor,
