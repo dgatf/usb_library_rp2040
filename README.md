@@ -21,8 +21,8 @@ To use the library:
 - Add the required libraries (`pico_stdlib`, `hardware_irq`) to your `CMakeLists.txt`. See [`src/CMakeLists.txt`](src/CMakeLists.txt).
 - Configure endpoints, handlers, and buffers in `usb_config.h` and `usb_config.c`. Do not modify the EP0 endpoints.
 - Use `bInterval` to adjust the polling interval: `0` = default, `1` = fastest, `16` = slowest.
-- If `data_buffer` is not `NULL`, the transfer is buffered and the endpoint callback is called once when the transfer completes.
-- If `data_buffer` is `NULL`, the endpoint callback is called once per packet, allowing the application to produce or consume data incrementally.
+- Each endpoint must have a valid `data_buffer`.
+- Endpoint callbacks are called once when the transfer completes.
 - All transfers are finite and length-bounded by the `len` value passed to `usb_init_transfer()`. This does not apply to EP0.
 - Applications that need continuous data transfer should chain fixed-length transfers at application level.
 - Isochronous packet size 1024 cannot be used, because the RP2040 hardware limit is 1023 bytes.
@@ -82,6 +82,7 @@ Returns `true` if the endpoint currently has an active transfer.
 
 Parameters:  
 `addr` - endpoint address
+
 ## Callback Functions
 
 ### `void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pkt, uint8_t stage)`
@@ -97,14 +98,15 @@ Parameters:
 
 Endpoint callback.
 
-- For buffered endpoints (`data_buffer != NULL`), it is called once when the transfer completes.
-- For OUT endpoints without a data buffer (`data_buffer == NULL`), it is called once per received packet. `buf` points to the received DPRAM packet buffer and `len` is the number of received bytes.
-- For IN endpoints without a data buffer (`data_buffer == NULL`), it is called with a DPRAM packet buffer to fill before the packet is sent. `len` is the maximum number of bytes to write for that packet.
-- When the transfer completes, the callback is called with `buf == NULL`.
+Called once when the endpoint transfer completes.
+
+For OUT endpoints, `buf` points to the endpoint data buffer containing the received data.  
+For IN endpoints, `buf` points to the endpoint data buffer that was transmitted.  
+`len` is the number of bytes transferred.
 
 Parameters:  
-`buf` - buffer to read from or write to  
-`len` - number of valid data bytes for OUT transfers, or the packet capacity for IN transfers
+`buf` - endpoint data buffer  
+`len` - number of transferred bytes
 
 ## TinyUSB Comparison
 
