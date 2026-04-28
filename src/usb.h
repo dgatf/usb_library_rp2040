@@ -13,7 +13,6 @@
 extern "C" {
 #endif
 
-#include "usb_common.h"
 #include "usb_config.h"
 
 void usb_device_init(void);

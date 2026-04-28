@@ -8,13 +8,8 @@
 
 #include "usb.h"
 
-#include <stdio.h>
 #include <string.h>
 
-#include "hardware/irq.h"
-#include "hardware/regs/usb.h"
-#include "hardware/resets.h"
-#include "hardware/structs/usb.h"
 #include "pico/stdlib.h"
 #include "usb_config.c"
 
