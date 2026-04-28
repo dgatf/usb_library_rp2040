@@ -556,3 +556,9 @@ uint usb_get_endpoint_buffer_size(uint8_t addr) {
     if (!ep) return 0;
     return ep->data_buffer_size;
 }
+
+bool usb_is_busy(uint8_t addr) {
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(addr);
+    if (!ep) return false;
+    return ep->status == STATUS_BUSY;
+}

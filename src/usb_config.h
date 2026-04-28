@@ -67,7 +67,7 @@ struct usb_endpoint_configuration {
     int32_t completed_pos;
     bool is_start;
     bool is_completed;
-    uint status;
+    volatile uint status;
     uint data_buffer_size;
     uint bit;
 };
