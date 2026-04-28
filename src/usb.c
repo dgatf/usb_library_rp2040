@@ -8,13 +8,8 @@
 
 #include "usb.h"
 
-#include <stdio.h>
 #include <string.h>
 
-#include "hardware/irq.h"
-#include "hardware/regs/usb.h"
-#include "hardware/resets.h"
-#include "hardware/structs/usb.h"
 #include "pico/stdlib.h"
 #include "usb_config.c"
 
@@ -49,6 +44,7 @@ static volatile uint8_t *get_dpram_buffer(struct usb_endpoint_configuration *ep)
 static inline uint prepare_buffer_a(struct usb_endpoint_configuration *ep);
 static inline uint prepare_buffer_b(struct usb_endpoint_configuration *ep);
 static inline uint read_buffer(struct usb_endpoint_configuration *ep, bool is_buffer_a);
+static struct usb_endpoint_configuration *usb_get_endpoint_configuration(uint8_t addr);
 
 static uint8_t dev_addr = 0;
 static volatile bool configured = false;
@@ -407,7 +403,7 @@ static inline uint read_buffer(struct usb_endpoint_configuration *ep, bool is_bu
         }
     }
 
-    if (ep->status == STATUS_LENGTH_OVERFLOW || ep->status == STATUS_BUFFER_OVERFLOW) usb_cancel_transfer(ep);
+    if (ep->status == STATUS_LENGTH_OVERFLOW || ep->status == STATUS_BUFFER_OVERFLOW) usb_cancel_transfer(ep->descriptor->bEndpointAddress);
 
     return len;
 }
@@ -453,22 +449,18 @@ static void handle_buff_status(void) {
 }
 
 static void acknowledge_out_request(void) {
-    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP0_IN_ADDR);
-    usb_init_transfer(ep, 0);
+    usb_init_transfer(EP0_IN_ADDR, 0);
 }
 
 static void acknowledge_in_request(void) {
-    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP0_OUT_ADDR);
-    usb_init_transfer(ep, 0);
+    usb_init_transfer(EP0_OUT_ADDR, 0);
 }
 
 static void prepare_control_packet(volatile struct usb_setup_packet *pkt) {
     if (pkt->bmRequestType & USB_DIR_IN) {
-        struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP0_IN_ADDR);
-        if (pkt->wLength) usb_init_transfer(ep, pkt->wLength);
+        if (pkt->wLength) usb_init_transfer(EP0_IN_ADDR, pkt->wLength);
     } else {
-        struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP0_OUT_ADDR);
-        if (pkt->wLength) usb_init_transfer(ep, pkt->wLength);
+        if (pkt->wLength) usb_init_transfer(EP0_OUT_ADDR, pkt->wLength);
     }
 }
 
@@ -524,7 +516,9 @@ void usb_device_init(void) {
 
 bool usb_is_configured(void) { return configured; }
 
-bool usb_init_transfer(struct usb_endpoint_configuration *ep, int32_t len) {
+bool usb_init_transfer(uint8_t addr, uint len) {
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(addr);
+    if (!ep) return false;
     if (len < 0) return false;
     ep->length = len;
     ep->completed_pos = 0;
@@ -536,12 +530,9 @@ bool usb_init_transfer(struct usb_endpoint_configuration *ep, int32_t len) {
     return true;
 }
 
-void usb_continue_transfer(struct usb_endpoint_configuration *ep) {
-    if (ep->is_completed) return;
-    start_data_packet(ep);
-}
-
-void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
+void usb_cancel_transfer(uint8_t addr) {
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(addr);
+    if (!ep) return;
     usb_hw_clear->buf_status = ep->bit;
     usb_hw_clear->buf_status = ep->bit;
     *ep->buffer_control = 0;
@@ -549,17 +540,20 @@ void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
 
 uint8_t usb_get_address(void) { return dev_addr; }
 
-uint usb_tx_available(struct usb_endpoint_configuration *ep) {
-    uint val = 0;
-    if (!ep->double_buffer) {
-        if (ep_is_tx(ep)) {
-            val = (*ep->buffer_control & USB_BUF_CTRL_FULL) == 0;
-        }
-    } else {
-        if (ep_is_tx(ep)) {
-            val = (*ep->buffer_control & USB_BUF_CTRL_FULL) == 0;
-            val += ((*ep->buffer_control >> 16)& USB_BUF_CTRL_FULL) == 0;
-        }
-    }
-    return val;
+uint8_t *usb_get_endpoint_buffer(uint8_t addr) {
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(addr);
+    if (!ep) return NULL;
+    return ep->data_buffer;
+}
+
+uint usb_get_endpoint_buffer_size(uint8_t addr) {
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(addr);
+    if (!ep) return 0;
+    return ep->data_buffer_size;
+}
+
+bool usb_is_busy(uint8_t addr) {
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(addr);
+    if (!ep) return false;
+    return ep->status == STATUS_BUSY;
 }

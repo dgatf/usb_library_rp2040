@@ -5,8 +5,8 @@ A fast and lightweight USB device library for the RP2040.
 ## Features
 
 - Supports control, bulk, isochronous, and interrupt transfers
-- Supports fixed-length transfers and length-bounded streaming transfers
-- Around 1.1 MB/s for bulk and streaming transfers in the included benchmark
+- Supports fixed-length transfers
+- Around 1.1 MB/s for bulk transfers in the included benchmark
 - Supports up to 32 endpoints
 - Supports single and double buffering
 - Interrupt-driven
@@ -23,15 +23,12 @@ To use the library:
 - Use `bInterval` to adjust the polling interval: `0` = default, `1` = fastest, `16` = slowest.
 - If `data_buffer` is not `NULL`, the transfer is buffered and the endpoint callback is called once when the transfer completes.
 - If `data_buffer` is `NULL`, the endpoint callback is called once per packet, allowing the application to produce or consume data incrementally.
-- Streaming transfers are still length-bounded by the `len` value passed to `usb_init_transfer()`. The library does not implement infinite USB transfers.
-- For streaming OUT endpoints, the callback receives each packet from the host.
-- For streaming IN endpoints, the callback receives a DPRAM packet buffer that the application fills before the packet is sent.
-- Applications can build continuous streams by chaining fixed-length chunks and calling `usb_continue_transfer()` only when more data is available.
+- All transfers are finite and length-bounded by the `len` value passed to `usb_init_transfer()`. This does not apply to EP0.
+- Applications that need continuous data transfer should chain fixed-length transfers at application level.
 - Isochronous packet size 1024 cannot be used, because the RP2040 hardware limit is 1023 bytes.
 - `wMaxPacketSize` must be a multiple of 64.
 - Double buffering can be used with `wMaxPacketSize` values of 64, 128, 256, and 512. Sizes 128, 256, and 512 are supported only for isochronous transfers.
 - For maximum bulk transfer speed, use `double_buffer = true` and `bInterval = 1`.
-- For maximum bulk stream speed, use `double_buffer = true` and `bInterval = 1`.
 - For maximum isochronous transfer speed, use `double_buffer = false`, `bInterval = 1`, and `wMaxPacketSize = 960`.
 
 ## API
@@ -40,49 +37,51 @@ To use the library:
 
 Initializes the USB peripheral in device mode.
 
-### `void usb_init_transfer(struct usb_endpoint_configuration *ep, uint32_t len)`
-
-Starts a transfer.
-
-- If `data_buffer` is not `NULL`, the transfer is buffered and continues until `len` bytes have been transferred.
-- If `data_buffer` is `NULL`, the callback is invoked once per packet so the application can read or write the transfer incrementally.
-- Streaming transfers are still length-bounded by `len`. This does not apply to EP0.
-
-Parameters:  
-`ep` - endpoint configuration  
-`len` - transfer length
-
-### `void usb_continue_transfer(struct usb_endpoint_configuration *ep)`
-
-Continues a transfer.
-
-For streaming transfers, this queues the next packet or buffer when the application has more data to send or is ready to receive more data. If the transfer has already been fully queued or completed, no new packet is queued.
-
-Parameters:  
-`ep` - endpoint configuration
-
-### `void usb_cancel_transfer(struct usb_endpoint_configuration *ep)`
-
-Cancels a transfer.
-
-Parameters:  
-`ep` - endpoint configuration
-
-### `struct usb_endpoint_configuration *usb_get_endpoint_configuration(uint8_t addr)`
-
-Returns a pointer to the endpoint configuration for the specified endpoint address.
-
-Parameters:  
-`addr` - endpoint address
-
 ### `bool usb_is_configured(void)`
 
 Returns `true` if the device has been configured by the host.
+
+### `bool usb_init_transfer(uint8_t addr, uint len)`
+
+Starts a fixed-length transfer on the endpoint address.
+
+Parameters:  
+`addr` - endpoint address  
+`len` - transfer length
+
+Returns `true` if the transfer was started.
+
+### `void usb_cancel_transfer(uint8_t addr)`
+
+Cancels the active transfer on the endpoint address.
+
+Parameters:  
+`addr` - endpoint address
 
 ### `uint8_t usb_get_address(void)`
 
 Returns the current USB device address.
 
+### `uint8_t *usb_get_endpoint_buffer(uint8_t addr)`
+
+Returns the configured endpoint data buffer.
+
+Parameters:  
+`addr` - endpoint address
+
+### `uint usb_get_endpoint_buffer_size(uint8_t addr)`
+
+Returns the configured endpoint data buffer size.
+
+Parameters:  
+`addr` - endpoint address
+
+### `bool usb_is_busy(uint8_t addr)`
+
+Returns `true` if the endpoint currently has an active transfer.
+
+Parameters:  
+`addr` - endpoint address
 ## Callback Functions
 
 ### `void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pkt, uint8_t stage)`
@@ -99,9 +98,9 @@ Parameters:
 Endpoint callback.
 
 - For buffered endpoints (`data_buffer != NULL`), it is called once when the transfer completes.
-- For streaming OUT endpoints (`data_buffer == NULL`), it is called once per received packet. `buf` points to the received DPRAM packet buffer and `len` is the number of received bytes.
-- For streaming IN endpoints (`data_buffer == NULL`), it is called with a DPRAM packet buffer to fill before the packet is sent. `len` is the maximum number of bytes to write for that packet.
-- When a streaming transfer completes, the callback is called with `buf == NULL`.
+- For OUT endpoints without a data buffer (`data_buffer == NULL`), it is called once per received packet. `buf` points to the received DPRAM packet buffer and `len` is the number of received bytes.
+- For IN endpoints without a data buffer (`data_buffer == NULL`), it is called with a DPRAM packet buffer to fill before the packet is sent. `len` is the maximum number of bytes to write for that packet.
+- When the transfer completes, the callback is called with `buf == NULL`.
 
 Parameters:  
 `buf` - buffer to read from or write to  
@@ -120,8 +119,6 @@ Request REQ_EP0_OUT. Size: 4096 bytes. Speed: 520 kB/s
 Request REQ_EP0_IN. Size: 4096 bytes. Speed: 429 kB/s
 Request REQ_EP1_OUT. Size: 40000 bytes. Speed: 1093 kB/s
 Request REQ_EP2_IN. Size: 40000 bytes. Speed: 1109 kB/s
-Request REQ_EP3_IN stream. Size: 40000 bytes. Speed: 1091 kB/s
-Request REQ_EP4_OUT stream. Size: 40000 bytes. Speed: 1072 kB/s
 ```
 
 ### TinyUSB
@@ -140,13 +137,11 @@ EP0 OUT:      +8.11%
 EP0 IN:      -33.07%
 BULK OUT:   +118.60%
 BULK IN:     +75.75%
-STREAM IN:   supported
-STREAM OUT:  supported
 ```
 
-In this benchmark, the library outperforms TinyUSB for bulk transfers and supports both IN and OUT streaming transfers. Isochronous and interrupt transfers are not supported by TinyUSB.
+In this benchmark, the library outperforms TinyUSB for bulk transfers. Isochronous and interrupt transfers are not supported by TinyUSB.
 
-Results may vary slightly depending on transfer size, endpoint configuration, and application-level stream rearming strategy.
+Results may vary slightly depending on transfer size and endpoint configuration.
 
 ## Limitations
 

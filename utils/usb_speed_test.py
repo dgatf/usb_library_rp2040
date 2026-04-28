@@ -26,13 +26,9 @@ REQ_EP0_OUT = 0X00
 REQ_EP0_IN = 0X01
 REQ_EP1_OUT = 0X02
 REQ_EP2_IN = 0X03
-REQ_EP3_IN = 0X04
-REQ_EP4_OUT = 0X05
 
 EP1_OUT_ADDRESS = EP_DIR_OUT | 0x01
 EP2_IN_ADDRESS = EP_DIR_IN | 0x02
-EP3_IN_ADDRESS = EP_DIR_IN | 0x03
-EP4_OUT_ADDRESS = EP_DIR_OUT | 0x04
 
 # dev.ctrl_transfer(reqType, bReq, wVal, wIndex, [] or size)
 
@@ -68,7 +64,7 @@ print("Request REQ_EP0_IN. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat)
 #print(response)
 
 # Request EP1 OUT
-size = 40000
+size = 400
 kBs = 0
 buffer = []
 size_buffer = [(size & 0xFF)]
@@ -88,7 +84,7 @@ for i in range(repeat):
 print("Request REQ_EP1_OUT. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat))
 
 # Request EP2 IN
-size = 40000
+size = 400
 kBs = 0
 size_buffer = [(size & 0xFF)]
 size_buffer.append(size >> 8)
@@ -100,40 +96,4 @@ for i in range(repeat):
     c = b - a
     kBs += (size / 1024) / (c.microseconds / 1000000)
 print("Request REQ_EP2_IN. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat))
-#print(response)
-
-# Request EP3 IN (stream)
-size = 40000
-kBs = 0
-size_buffer = [(size & 0xFF)]
-size_buffer.append(size >> 8)
-for i in range(repeat):
-    dev.ctrl_transfer(TYPE_VENDOR | EP_DIR_OUT, REQ_EP3_IN, 0, 0, size_buffer)
-    a = datetime.datetime.now()
-    response = dev.read(EP3_IN_ADDRESS, size)
-    b = datetime.datetime.now()
-    c = b - a
-    kBs += (size / 1024) / (c.microseconds / 1000000)
-print("Request REQ_EP3_IN stream. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat))
-#print(response)
-
-# Request EP4 OUT (stream)
-
-size = 40000
-kBs = 0
-buffer = []
-size_buffer = [(size & 0xFF)]
-size_buffer.append(size >> 8)
-val = 0
-for i in range(size):
-    buffer.append(val)
-    val += 1
-    if (val == 255) : val = 0
-for i in range(repeat):
-    dev.ctrl_transfer(TYPE_VENDOR | EP_DIR_OUT, REQ_EP4_OUT, 0, 0, size_buffer)
-    a = datetime.datetime.now()
-    dev.write(EP4_OUT_ADDRESS, buffer)
-    b = datetime.datetime.now()
-    c = b - a
-    kBs += (size / 1024) / (c.microseconds / 1000000)
-print("Request REQ_EP4_OUT stream. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat))
+print(response)
