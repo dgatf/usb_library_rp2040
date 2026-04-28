@@ -289,9 +289,9 @@ static inline uint prepare_buffer_a(struct usb_endpoint_configuration *ep) {
     val |= ep->next_pid ? USB_BUF_CTRL_DATA1_PID : USB_BUF_CTRL_DATA0_PID;
     ep->next_pid ^= 1u;
     val |= USB_BUF_CTRL_AVAIL;
-    *ep->buffer_control = (*ep->buffer_control & ~(uint32_t)0xFFFF) | val;
     ep->queued_pos += len;
     ep->is_start = false;
+    *ep->buffer_control = (*ep->buffer_control & ~(uint32_t)0xFFFF) | val;
     return len;
 }
 
@@ -313,9 +313,9 @@ static inline uint prepare_buffer_b(struct usb_endpoint_configuration *ep) {
     val |= ep->next_pid ? USB_BUF_CTRL_DATA1_PID : USB_BUF_CTRL_DATA0_PID;
     ep->next_pid ^= 1u;
     val |= USB_BUF_CTRL_AVAIL;
-    *ep->buffer_control = (*ep->buffer_control & (uint32_t)0xFFFF) | (val << 16);
     ep->queued_pos += len;
     ep->is_start = false;
+    *ep->buffer_control = (*ep->buffer_control & (uint32_t)0xFFFF) | (val << 16);
     return len;
 }
 
@@ -330,8 +330,10 @@ static uint start_data_packet(struct usb_endpoint_configuration *ep) {
         } else {
             if (!(usb_hw->buf_cpu_should_handle & ep->bit)) {
                 len = prepare_buffer_a(ep);
+                len += prepare_buffer_b(ep);
             } else {
                 len = prepare_buffer_b(ep);
+                len += prepare_buffer_a(ep);
             }
         }
     }
@@ -348,6 +350,7 @@ static uint get_buffer_length(struct usb_endpoint_configuration *ep, bool is_buf
 }
 
 static inline uint read_buffer(struct usb_endpoint_configuration *ep, bool is_buffer_a) {
+    usb_hw_clear->buf_status = ep->bit;
     uint len;
     volatile uint8_t *buffer;
     if (is_buffer_a) {
@@ -369,16 +372,14 @@ static inline uint read_buffer(struct usb_endpoint_configuration *ep, bool is_bu
         ep->status = STATUS_BUFFER_OVERFLOW;
         ep->is_completed = true;
     }
-    // completa si: paquete corto < wMaxPacketSize, o paquete completo y es el último, o status no es busy (ej. overflow)
-    // if (len < ep->descriptor->wMaxPacketSize ||
+    // completa si: paquete corto < wMaxPacketSize, o paquete completo y es el último, o status no es busy (ej.
+    // overflow) if (len < ep->descriptor->wMaxPacketSize ||
     //     (len == ep->descriptor->wMaxPacketSize && ep->length == ep->completed_pos + len) || ep->status !=
     //     STATUS_BUSY) {
     if (len < ep->descriptor->wMaxPacketSize || ep->completed_pos + len >= ep->length) {
         ep->is_completed = true;
         if (ep->status == STATUS_BUSY) ep->status = STATUS_OK;
     }
-
-    usb_hw_clear->buf_status = ep->bit;
 
     // Copy data to buffer or call handler
     if (!ep_is_tx(ep)) {
@@ -389,7 +390,6 @@ static inline uint read_buffer(struct usb_endpoint_configuration *ep, bool is_bu
     }
 
     ep->completed_pos += len;
-    //usb_hw_clear->buf_status = ep->bit;
 
     // If transfer is completed, call handler with final buffer. Otherwise, if it's a TX transfer, prepare next packet.
     if (ep->is_completed) {
@@ -548,3 +548,18 @@ void usb_cancel_transfer(struct usb_endpoint_configuration *ep) {
 }
 
 uint8_t usb_get_address(void) { return dev_addr; }
+
+uint usb_tx_available(struct usb_endpoint_configuration *ep) {
+    uint val = 0;
+    if (!ep->double_buffer) {
+        if (ep_is_tx(ep)) {
+            val = (*ep->buffer_control & USB_BUF_CTRL_FULL) == 0;
+        }
+    } else {
+        if (ep_is_tx(ep)) {
+            val = (*ep->buffer_control & USB_BUF_CTRL_FULL) == 0;
+            val += ((*ep->buffer_control >> 16)& USB_BUF_CTRL_FULL) == 0;
+        }
+    }
+    return val;
+}

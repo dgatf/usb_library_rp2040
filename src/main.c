@@ -11,6 +11,7 @@
 
 #include "pico/stdlib.h"
 #include "usb.h"
+#include "hardware/sync.h"
 
 #define REQ_EP0_OUT 0X00
 #define REQ_EP0_IN 0X01
@@ -20,6 +21,19 @@
 #define REQ_EP4_OUT 0X05
 
 uint8_t *ep0_buf, *ep2_buf;
+bool usb_is_available = false;
+bool ep3_is_active = false;
+
+void poll_usb_tx(void) {
+    if (!ep3_is_active) return;
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP3_IN_ADDR);
+    uint32_t save = save_and_disable_interrupts();
+    if (usb_tx_available(ep)) {
+        printf("\nContinue EP3 IN. %d bytes sent to host", ep->queued_pos);
+        usb_continue_transfer(ep);
+    }
+    restore_interrupts(save);
+}
 
 int main(void) {
     stdio_init_all();
@@ -37,6 +51,7 @@ int main(void) {
     }
 
     while (1) {
+        poll_usb_tx();
     }
 }
 
@@ -96,7 +111,8 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
                 printf("\nReceived request REQ_EP3_IN. Start EP3 IN %i", length);
                 struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP3_IN_ADDR);
                 usb_init_transfer(ep, length);
-                usb_continue_transfer(ep);
+                ep3_is_active = true;
+                //usb_continue_transfer(ep);
             } else if (pkt->bRequest == REQ_EP4_OUT) {
                 int length = (uint32_t)buf[0] | ((uint32_t)buf[1] << 8);
                 printf("\nReceived request REQ_EP4_OUT. Start EP4 OUT %i", length);
@@ -109,7 +125,7 @@ void control_transfer_handler(uint8_t *buf, volatile struct usb_setup_packet *pk
 
 void ep1_out_handler(uint8_t *buf, uint16_t len) {
     printf("\nEP1 OUT received %d bytes from host ", len);
-    //for (uint i = 0; i < len; i++) printf("%u ", buf[i]);
+    // for (uint i = 0; i < len; i++) printf("%u ", buf[i]);
 }
 
 void ep2_in_handler(uint8_t *buf, uint16_t len) { printf("\nEP2 IN sent %d bytes to host", len); }
@@ -124,24 +140,26 @@ void ep3_in_handler(uint8_t *buf, uint16_t len) {
         prev += len;
     } else {
         // printf("\nEP3 IN. Sent %d bytes to host. Total completed  %d", len, ep->completed_pos);
-        if (!ep->is_completed)
-            usb_continue_transfer(ep);
-        else
+        if (ep->is_completed) {
+            ep3_is_active = false;
+            prev = 0;
             printf("\nEP3 IN transfer completed %d bytes sent to host", ep->completed_pos);
+        }
     }
 }
 
 void ep4_out_handler(uint8_t *buf, uint16_t len) {
     struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(EP4_OUT_ADDR);
-    uint8_t data[len];
-    memcpy(data, buf, len);
+    if (buf) {
+        uint8_t data[len];
+        memcpy(data, buf, len);
+        printf("\nEP4 OUT received %d bytes from host. Total  %d\n", len, ep->completed_pos);
+        for (uint i = 0; i < len; i++) printf("%u ", data[i]);
+    }
     if (!ep->is_completed && ep->queued_pos < ep->length) {
-        //printf("\nEP4 OUT received %d bytes from host. Total  %d\n", len, ep->completed_pos);
-        //for (uint i = 0; i < len; i++) printf("%u ", data[i]);
         usb_continue_transfer(ep);
-    } else {
+    } else if (ep->is_completed ) {
         printf("\nEP4 OUT transfer completed %d bytes received from host", ep->completed_pos);
         printf("\nBC 0x%X", *ep->buffer_control);
-        //*ep->buffer_control = 0;
     }
 }

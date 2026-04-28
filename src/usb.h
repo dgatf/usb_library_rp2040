@@ -23,6 +23,7 @@ void usb_cancel_transfer(struct usb_endpoint_configuration *ep);
 struct usb_endpoint_configuration *usb_get_endpoint_configuration(uint8_t addr);
 uint8_t usb_get_address(void);
 void usb_continue_transfer(struct usb_endpoint_configuration *ep);
+uint usb_tx_available(struct usb_endpoint_configuration *ep);
 
 #ifdef __cplusplus
 }
