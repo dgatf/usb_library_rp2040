@@ -489,9 +489,12 @@ void usb_device_init(struct usb_device_configuration *config) {
     usb_hw->main_ctrl = USB_MAIN_CTRL_CONTROLLER_EN_BITS;
     usb_hw->sie_ctrl = USB_SIE_CTRL_EP0_INT_1BUF_BITS;
     usb_hw->inte = USB_INTS_BUFF_STATUS_BITS | USB_INTS_BUS_RESET_BITS | USB_INTS_SETUP_REQ_BITS;
-    usb_get_endpoint_configuration(EP0_IN_ADDR)->handler = ep0_in_handler;
-    usb_get_endpoint_configuration(EP0_OUT_ADDR)->handler = ep0_out_handler;
-    ep0_buf = usb_get_endpoint_configuration(EP0_OUT_ADDR)->data_buffer;
+    struct usb_endpoint_configuration *ep0_in = usb_get_endpoint_configuration(EP0_IN_ADDR);
+    struct usb_endpoint_configuration *ep0_out = usb_get_endpoint_configuration(EP0_OUT_ADDR);
+    hard_assert(ep0_in && ep0_out);
+    ep0_in->handler = ep0_in_handler;
+    ep0_out->handler = ep0_out_handler;
+    ep0_buf = ep0_out->data_buffer;
     dev_config->config_descriptor->wTotalLength =
         sizeof(struct usb_configuration_descriptor) + sizeof(struct usb_interface_descriptor);
     setup_endpoints();
