@@ -76,6 +76,14 @@ Returns the configured endpoint data buffer size.
 Parameters:  
 `addr` - endpoint address
 
+### `void usb_set_endpoint_buffer(uint8_t addr, uint8_t *buf)`
+
+Sets the data buffer for the specified endpoint.
+
+Parameters:
+`addr` - endpoint address
+`buf` - pointer to the data buffer
+
 ### `bool usb_is_busy(uint8_t addr)`
 
 Returns `true` if the endpoint currently has an active transfer.
