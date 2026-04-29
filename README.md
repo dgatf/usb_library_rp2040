@@ -35,7 +35,11 @@ To use the library:
 
 ### `void usb_device_init(void)`
 
-Initializes the USB peripheral in device mode.
+Initializes the USB peripheral in device mode using the provided configuration.
+
+Parameters:
+
+`config` - pointer to a usb_device_configuration structure containing descriptors, endpoints, buffers, and handlers.
 
 ### `bool usb_is_configured(void)`
 
@@ -115,6 +119,50 @@ For IN endpoints, `buf` points to the endpoint data buffer that was transmitted.
 Parameters:  
 `buf` - endpoint data buffer  
 `len` - number of transferred bytes
+
+## Configuration
+
+The USB device is configured by passing a `usb_device_configuration` structure to the library at initialization time:
+
+```c
+#include "usb.h"
+#include "usb_config.h"
+
+int main(void) {
+    usb_device_init(&dev_config);
+
+    while (true) {
+        tight_loop_contents();
+    }
+}
+```
+
+All descriptors, endpoints, buffers, and handlers are defined in `usb_config.h` and `usb_config.c`.
+The library does not contain any hardcoded configuration.
+
+This design provides:
+
+* Full separation between the USB core and the device configuration
+* The ability to define multiple configurations in the application
+* Cleaner and more maintainable code
+
+### Multiple configurations
+
+You can define multiple configurations and select one at runtime:
+
+```c
+extern struct usb_device_configuration config_a;
+extern struct usb_device_configuration config_b;
+
+struct usb_device_configuration *configs[] = {
+    &config_a,
+    &config_b,
+};
+
+usb_device_init(configs[0]);
+```
+
+> Note: Only one configuration is active at a time. Switching configurations at runtime requires reinitializing the USB device.
 
 ## TinyUSB Comparison
 
