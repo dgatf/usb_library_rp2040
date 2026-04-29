@@ -170,11 +170,8 @@ static void usb_enable_endpoint(struct usb_endpoint_configuration *ep) {
     if (is_ep0(ep)) return;
     uint32_t dpram_offset = buffer_offset(ep->dpram_buffer_a);
     uint32_t reg = EP_CTRL_ENABLE_BITS | (ep->descriptor->bmAttributes << EP_CTRL_BUFFER_TYPE_LSB) |
-                   (ep->double_buffer ? EP_CTRL_DOUBLE_BUFFERED_BITS : 0) | EP_CTRL_INTERRUPT_PER_BUFFER |
-                   dpram_offset;
-    usb_hw_clear->buf_status = ep->bit;
-    usb_hw_clear->buf_status = ep->bit;
-    *ep->buffer_control = 0;
+                   (ep->double_buffer ? EP_CTRL_DOUBLE_BUFFERED_BITS : 0) | EP_CTRL_INTERRUPT_PER_BUFFER | dpram_offset;
+    usb_cancel_transfer(ep->descriptor->bEndpointAddress);
     *ep->endpoint_control = reg;
     ep->length = 0;
     ep->queued_pos = 0;
@@ -190,9 +187,7 @@ static void usb_disable_non_control_endpoints(void) {
     for (int i = 0; i < USB_NUM_ENDPOINTS; i++) {
         struct usb_endpoint_configuration *ep = &endpoints[i];
         if (!ep->descriptor || is_ep0(ep)) continue;
-        usb_hw_clear->buf_status = ep->bit;
-        usb_hw_clear->buf_status = ep->bit;
-        *ep->buffer_control = 0;
+        usb_cancel_transfer(ep->descriptor->bEndpointAddress);
         *ep->endpoint_control = 0;
         ep->length = 0;
         ep->queued_pos = 0;
