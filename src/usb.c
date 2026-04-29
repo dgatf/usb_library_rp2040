@@ -679,3 +679,9 @@ bool usb_is_busy(uint8_t addr) {
     if (!ep) return false;
     return ep->status == STATUS_BUSY;
 }
+
+bool usb_is_completed(uint8_t addr) {
+    struct usb_endpoint_configuration *ep = usb_get_endpoint_configuration(addr);
+    if (!ep) return false;
+    return ep->is_completed;
+}
