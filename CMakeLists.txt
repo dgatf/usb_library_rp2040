@@ -2,13 +2,19 @@ cmake_minimum_required(VERSION 3.12)
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
-project(usb_library C CXX ASM)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+    project(usb_library C CXX ASM)
 
-pico_sdk_init()
+    set(CMAKE_C_STANDARD 11)
+    set(CMAKE_CXX_STANDARD 17)
+
+    pico_sdk_init()
+endif()
 
 add_subdirectory(src)
-add_subdirectory(examples/usb_device_example)
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    add_subdirectory(examples/usb_device_example)
+endif()
