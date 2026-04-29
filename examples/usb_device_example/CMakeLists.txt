@@ -1,6 +1,9 @@
 add_executable(usb_device_example
     main.c
+    usb_config.c
 )
+
+target_include_directories(usb_device_example PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 target_link_libraries(usb_device_example
     PRIVATE

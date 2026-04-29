@@ -1,6 +1,5 @@
 add_library(${PROJECT_NAME} 
     usb.c
-    usb_config.c
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR})

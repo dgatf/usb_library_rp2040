@@ -15,8 +15,6 @@ extern "C" {
 
 #include "usb_common.h"
 
-#define EP0_IN_ADDR (USB_DIR_IN | 0)
-#define EP0_OUT_ADDR (USB_DIR_OUT | 0)
 #define EP1_OUT_ADDR (USB_DIR_OUT | 1)
 #define EP2_IN_ADDR (USB_DIR_IN | 2)
 
@@ -51,36 +49,6 @@ static const struct usb_endpoint_descriptor ep2_in = {.bLength = sizeof(struct u
                                                       .bmAttributes = USB_TRANSFER_TYPE_BULK,
                                                       .wMaxPacketSize = PACKET_SIZE_BULK,
                                                       .bInterval = 1};
-
-struct usb_endpoint_configuration {
-    const struct usb_endpoint_descriptor *descriptor;
-    usb_ep_handler handler;
-    volatile uint32_t *endpoint_control;
-    volatile uint32_t *buffer_control;
-    volatile uint8_t *dpram_buffer_a;
-    volatile uint8_t *dpram_buffer_b;
-    uint8_t *data_buffer;
-    bool double_buffer;
-    uint8_t next_pid;
-    int32_t length;
-    int32_t queued_pos;
-    int32_t completed_pos;
-    bool is_start;
-    bool is_completed;
-    volatile uint status;
-    uint data_buffer_size;
-    uint bit;
-};
-
-struct usb_device_configuration {
-    const struct usb_device_descriptor *device_descriptor;
-    const struct usb_interface_descriptor *interface_descriptor;
-    const struct usb_configuration_descriptor *config_descriptor;
-    const unsigned char *lang_descriptor;
-    const unsigned char **descriptor_strings;
-    struct usb_endpoint_configuration endpoints[USB_NUM_ENDPOINTS];
-    usb_control_transfer_handler control_transfer_handler;
-};
 
 static const struct usb_device_descriptor device_descriptor = {
     .bLength = sizeof(struct usb_device_descriptor),
@@ -129,6 +97,8 @@ static const unsigned char *descriptor_strings[] = {
     (unsigned char *)"Raspberry Pi",  // Vendor
     (unsigned char *)"USB device"     // Product
 };
+
+extern struct usb_device_configuration dev_config;
 
 #ifdef __cplusplus
 }

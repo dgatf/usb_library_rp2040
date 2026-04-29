@@ -11,6 +11,7 @@
 
 #include "pico/stdlib.h"
 #include "usb.h"
+#include "usb_config.h"
 #include "hardware/sync.h"
 
 #define REQ_EP0_OUT 0X00
@@ -23,14 +24,15 @@ uint8_t *ep0_buf, *ep2_buf;
 int main(void) {
     stdio_init_all();
     printf("\n\nUSB Device example");
+
+    usb_device_init(&dev_config);
+
     ep0_buf = usb_get_endpoint_buffer(EP0_OUT_ADDR);
     ep2_buf = usb_get_endpoint_buffer(EP2_IN_ADDR);
 
     for (uint i = 0; i < usb_get_endpoint_buffer_size(EP2_IN_ADDR); i++) {
         ep2_buf[i] = i;
     }
-
-    usb_device_init();
 
     while (!usb_is_configured()) {
     }
