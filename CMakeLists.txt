@@ -11,7 +11,7 @@ endif()
 if(USB_LIBRARY_RP2040_TOP_LEVEL)
     include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
-    project(usb_library_rp2040 C CXX ASM)
+    project(usb_library C CXX ASM)
 
     set(CMAKE_C_STANDARD 11)
     set(CMAKE_CXX_STANDARD 17)
@@ -19,7 +19,7 @@ if(USB_LIBRARY_RP2040_TOP_LEVEL)
     pico_sdk_init()
 endif()
 
-option(USB_LIBRARY_RP2040_BUILD_EXAMPLES "Build usb_library_rp2040 examples" ${USB_LIBRARY_RP2040_TOP_LEVEL})
+option(USB_LIBRARY_RP2040_BUILD_EXAMPLES "Build usb_library examples" ${USB_LIBRARY_RP2040_TOP_LEVEL})
 
 add_subdirectory(src)
 

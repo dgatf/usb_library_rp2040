@@ -17,7 +17,7 @@ Compatible with the [Raspberry Pi Pico SDK](https://raspberrypi.github.io/pico-s
 
 To use the library:
 
-- Add this repository to your project with `add_subdirectory(...)` and link `usb_library_rp2040`, or copy `usb.h`, `usb.c`, `usb_common.h`, `usb_config.h`, and `usb_config.c` into your project.
+- Add this repository to your project with `add_subdirectory(...)` and link `usb_library`, or copy `usb.h`, `usb.c`, `usb_common.h`, `usb_config.h`, and `usb_config.c` into your project.
 - Add the required libraries (`pico_stdlib`, `hardware_irq`) to your `CMakeLists.txt`. See [`src/CMakeLists.txt`](src/CMakeLists.txt).
 - Configure endpoints, handlers, and buffers in `usb_config.h` and `usb_config.c`. Do not modify the EP0 endpoints.
 - Use `bInterval` to adjust the polling interval: `0` = default, `1` = fastest, `16` = slowest.
