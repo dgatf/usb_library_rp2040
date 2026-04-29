@@ -211,7 +211,8 @@ static void set_device_configuration(volatile struct usb_setup_packet *pkt) {
 
     struct usb_endpoint_configuration *endpoints = dev_config->endpoints;
     for (int i = 0; i < USB_NUM_ENDPOINTS; i++) {
-        if (endpoints[i].descriptor && !is_ep0(&endpoints[i])) usb_enable_endpoint(&endpoints[i]);
+        if (!endpoints[i].descriptor || is_ep0(&endpoints[i])) continue;
+        usb_enable_endpoint(&endpoints[i]);
     }
     configured = true;
 }
