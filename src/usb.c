@@ -22,6 +22,9 @@ static uint8_t prepare_string_descriptor(const unsigned char *str);
 static inline uint32_t buffer_offset(volatile uint8_t *buf);
 static void setup_endpoint(struct usb_endpoint_configuration *ep);
 static void setup_endpoints(void);
+static void usb_enable_endpoint(struct usb_endpoint_configuration *ep);
+static void usb_disable_non_control_endpoints(void);
+static void reset_endpoint_state(struct usb_endpoint_configuration *ep);
 static void set_device_configuration(volatile struct usb_setup_packet *pkt);
 static void handle_device_descriptor(volatile struct usb_setup_packet *pkt);
 static void handle_config_descriptor(volatile struct usb_setup_packet *pkt);
@@ -86,6 +89,7 @@ static void bus_reset(void) {
     dev_addr = 0;
     usb_hw->dev_addr_ctrl = 0;
     configured = false;
+    usb_disable_non_control_endpoints();
     // printf("\nBus Reset");
 }
 
@@ -149,11 +153,7 @@ static void setup_endpoint(struct usb_endpoint_configuration *ep) {
         ep->dpram_buffer_b = NULL;
     if (!is_ep0(ep)) {
         dev_config->interface_descriptor->bNumEndpoints++;
-        uint32_t dpram_offset = buffer_offset(ep->dpram_buffer_a);
-        uint32_t reg = EP_CTRL_ENABLE_BITS | (ep->descriptor->bmAttributes << EP_CTRL_BUFFER_TYPE_LSB) |
-                       (ep->double_buffer ? EP_CTRL_DOUBLE_BUFFERED_BITS : 0) | EP_CTRL_INTERRUPT_PER_BUFFER |
-                       dpram_offset;
-        *ep->endpoint_control = reg;
+        usb_enable_endpoint(ep);
     }
 }
 
@@ -167,7 +167,55 @@ static void setup_endpoints(void) {
     }
 }
 
-static void set_device_configuration(volatile struct usb_setup_packet *pkt) { configured = true; }
+static void usb_enable_endpoint(struct usb_endpoint_configuration *ep) {
+    if (is_ep0(ep)) return;
+    uint32_t dpram_offset = buffer_offset(ep->dpram_buffer_a);
+    uint32_t reg = EP_CTRL_ENABLE_BITS | (ep->descriptor->bmAttributes << EP_CTRL_BUFFER_TYPE_LSB) |
+                   (ep->double_buffer ? EP_CTRL_DOUBLE_BUFFERED_BITS : 0) | EP_CTRL_INTERRUPT_PER_BUFFER | dpram_offset;
+    usb_cancel_transfer(ep->descriptor->bEndpointAddress);
+    *ep->endpoint_control = reg;
+    reset_endpoint_state(ep);
+}
+
+static void usb_disable_non_control_endpoints(void) {
+    struct usb_endpoint_configuration *endpoints = dev_config->endpoints;
+    for (int i = 0; i < USB_NUM_ENDPOINTS; i++) {
+        struct usb_endpoint_configuration *ep = &endpoints[i];
+        if (!ep->descriptor || is_ep0(ep)) continue;
+        usb_cancel_transfer(ep->descriptor->bEndpointAddress);
+        *ep->endpoint_control = 0;
+        reset_endpoint_state(ep);
+    }
+}
+
+static void reset_endpoint_state(struct usb_endpoint_configuration *ep) {
+    ep->length = 0;
+    ep->queued_pos = 0;
+    ep->completed_pos = 0;
+    ep->is_start = false;
+    ep->is_completed = false;
+    ep->status = STATUS_OK;
+    ep->next_pid = 0u;
+}
+
+static void set_device_configuration(volatile struct usb_setup_packet *pkt) {
+    uint8_t value = pkt->wValue & 0xff;
+
+    if (value == 0) {
+        usb_disable_non_control_endpoints();
+        configured = false;
+        return;
+    }
+
+    if (value != dev_config->config_descriptor->bConfigurationValue) return;
+
+    struct usb_endpoint_configuration *endpoints = dev_config->endpoints;
+    for (int i = 0; i < USB_NUM_ENDPOINTS; i++) {
+        if (!endpoints[i].descriptor || is_ep0(&endpoints[i])) continue;
+        usb_enable_endpoint(&endpoints[i]);
+    }
+    configured = true;
+}
 
 static void handle_device_descriptor(volatile struct usb_setup_packet *pkt) {
     const struct usb_device_descriptor *d = dev_config->device_descriptor;
@@ -498,6 +546,7 @@ void usb_device_init(struct usb_device_configuration *config) {
     dev_config->config_descriptor->wTotalLength =
         sizeof(struct usb_configuration_descriptor) + sizeof(struct usb_interface_descriptor);
     setup_endpoints();
+    usb_disable_non_control_endpoints();
     usb_hw_set->sie_ctrl = USB_SIE_CTRL_PULLUP_EN_BITS;
 }
 
