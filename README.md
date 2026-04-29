@@ -33,13 +33,13 @@ To use the library:
 
 ## API
 
-### `void usb_device_init(struct usb_device_configuration *config)`
+### `void usb_device_init(struct usb_device_configuration *configs)`
 
-Initializes the USB peripheral in device mode using the provided configuration.
+Initializes the USB peripheral in device mode using the provided configuration array.
 
 Parameters:
 
-`config` - pointer to a usb_device_configuration structure containing descriptors, endpoints, buffers, and handlers.
+`configs` - pointer to the first element of a `usb_device_configuration` array. The array must contain as many entries as `device_descriptor->bNumConfigurations`.
 
 ### `bool usb_is_configured(void)`
 
@@ -122,14 +122,14 @@ Parameters:
 
 ## Configuration
 
-The USB device is configured by passing a `usb_device_configuration` structure to the library at initialization time:
+The USB device is configured by passing a `usb_device_configuration` array to the library at initialization time:
 
 ```c
 #include "usb.h"
 #include "usb_config.h"
 
 int main(void) {
-    usb_device_init(&dev_config);
+    usb_device_init(dev_configs);
 
     while (true) {
         tight_loop_contents();
@@ -137,32 +137,29 @@ int main(void) {
 }
 ```
 
-All descriptors, endpoints, buffers, and handlers are defined in `usb_config.h` and `usb_config.c`.
+Each array entry defines one USB configuration, including its descriptors, endpoints, buffers, and handlers.
 The library does not contain any hardcoded configuration.
 
 This design provides:
 
 * Full separation between the USB core and the device configuration
-* The ability to define multiple configurations in the application
+* Native support for multiple USB configurations
 * Cleaner and more maintainable code
 
 ### Multiple configurations
 
-You can define multiple configurations and select one at runtime:
+You can define multiple USB configurations in the array, and the host selects one through `SET_CONFIGURATION`:
 
 ```c
-extern struct usb_device_configuration config_a;
-extern struct usb_device_configuration config_b;
-
-struct usb_device_configuration *configs[] = {
-    &config_a,
-    &config_b,
+struct usb_device_configuration dev_configs[] = {
+    config_a,
+    config_b,
 };
 
-usb_device_init(configs[0]);
+usb_device_init(dev_configs);
 ```
 
-> Note: Only one configuration is active at a time. Switching configurations at runtime requires reinitializing the USB device.
+> Note: Only one configuration is active at a time, as required by USB. The host chooses the active configuration during enumeration.
 
 ## TinyUSB Comparison
 
@@ -205,7 +202,7 @@ Results may vary slightly depending on transfer size and endpoint configuration.
 
 - USB host mode is not supported. If you need host support, use TinyUSB.
 - USB classes are not implemented. You must implement the class yourself or use TinyUSB.
-- Only one configuration and one interface are currently supported.
+- Only one interface per configuration is currently supported.
 
 ## References
 

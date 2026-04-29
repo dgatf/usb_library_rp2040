@@ -25,7 +25,7 @@ int main(void) {
     stdio_init_all();
     printf("\n\nUSB Device example");
 
-    usb_device_init(&dev_config);
+    usb_device_init(dev_configs);
 
     ep0_buf = usb_get_endpoint_buffer(EP0_OUT_ADDR);
     ep2_buf = usb_get_endpoint_buffer(EP2_IN_ADDR);

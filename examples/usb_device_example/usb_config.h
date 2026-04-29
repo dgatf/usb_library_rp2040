@@ -98,7 +98,7 @@ static const unsigned char *descriptor_strings[] = {
     (unsigned char *)"USB device"     // Product
 };
 
-extern struct usb_device_configuration dev_config;
+extern struct usb_device_configuration dev_configs[];
 
 #ifdef __cplusplus
 }
