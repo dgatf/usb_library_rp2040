@@ -7,7 +7,7 @@ target_include_directories(usb_device_example PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 target_link_libraries(usb_device_example
     PRIVATE
-        usb_library
+        usb_library_rp2040
         pico_stdlib
 )
 
