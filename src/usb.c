@@ -24,6 +24,7 @@ static void setup_endpoint(struct usb_endpoint_configuration *ep);
 static void setup_endpoints(void);
 static void usb_enable_endpoint(struct usb_endpoint_configuration *ep);
 static void usb_disable_non_control_endpoints(void);
+static void reset_endpoint_state(struct usb_endpoint_configuration *ep);
 static void set_device_configuration(volatile struct usb_setup_packet *pkt);
 static void handle_device_descriptor(volatile struct usb_setup_packet *pkt);
 static void handle_config_descriptor(volatile struct usb_setup_packet *pkt);
@@ -173,13 +174,7 @@ static void usb_enable_endpoint(struct usb_endpoint_configuration *ep) {
                    (ep->double_buffer ? EP_CTRL_DOUBLE_BUFFERED_BITS : 0) | EP_CTRL_INTERRUPT_PER_BUFFER | dpram_offset;
     usb_cancel_transfer(ep->descriptor->bEndpointAddress);
     *ep->endpoint_control = reg;
-    ep->length = 0;
-    ep->queued_pos = 0;
-    ep->completed_pos = 0;
-    ep->is_start = false;
-    ep->is_completed = false;
-    ep->status = STATUS_OK;
-    ep->next_pid = 0u;
+    reset_endpoint_state(ep);
 }
 
 static void usb_disable_non_control_endpoints(void) {
@@ -189,14 +184,18 @@ static void usb_disable_non_control_endpoints(void) {
         if (!ep->descriptor || is_ep0(ep)) continue;
         usb_cancel_transfer(ep->descriptor->bEndpointAddress);
         *ep->endpoint_control = 0;
-        ep->length = 0;
-        ep->queued_pos = 0;
-        ep->completed_pos = 0;
-        ep->is_start = false;
-        ep->is_completed = false;
-        ep->status = STATUS_OK;
-        ep->next_pid = 0u;
+        reset_endpoint_state(ep);
     }
+}
+
+static void reset_endpoint_state(struct usb_endpoint_configuration *ep) {
+    ep->length = 0;
+    ep->queued_pos = 0;
+    ep->completed_pos = 0;
+    ep->is_start = false;
+    ep->is_completed = false;
+    ep->status = STATUS_OK;
+    ep->next_pid = 0u;
 }
 
 static void set_device_configuration(volatile struct usb_setup_packet *pkt) {
