@@ -94,13 +94,13 @@ static inline bool ep_is_tx(struct usb_endpoint_configuration *ep) {
     return ep->descriptor->bEndpointAddress & USB_DIR_IN;
 }
 
+static inline struct usb_device_configuration *usb_get_base_configuration(void) { return dev_configs; }
+
 static inline uint8_t usb_get_configuration_count(void) {
     struct usb_device_configuration *base_config = usb_get_base_configuration();
     if (!base_config || !base_config->device_descriptor) return 0;
     return base_config->device_descriptor->bNumConfigurations;
 }
-
-static inline struct usb_device_configuration *usb_get_base_configuration(void) { return dev_configs; }
 
 static inline struct usb_device_configuration *usb_get_control_configuration(void) {
     if (active_config) return active_config;
@@ -592,6 +592,7 @@ struct usb_endpoint_configuration *usb_get_endpoint_configuration(uint8_t addr) 
     for (uint8_t cfg_idx = 0; cfg_idx < usb_get_configuration_count(); cfg_idx++) {
         struct usb_device_configuration *config = usb_get_configuration_by_index(cfg_idx);
         if (!config) continue;
+        if (config == active_config) continue;
         struct usb_endpoint_configuration *endpoints = config->endpoints;
         for (int i = 0; i < USB_NUM_ENDPOINTS; i++) {
             if (endpoints[i].descriptor && (endpoints[i].descriptor->bEndpointAddress == addr)) {
