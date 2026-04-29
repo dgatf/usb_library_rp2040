@@ -1,5 +1,5 @@
 if(NOT TARGET pico_stdlib OR NOT TARGET hardware_irq)
-    message(FATAL_ERROR "usb_library_rp2040 requires the Pico SDK to be imported and initialized before adding this directory.")
+    message(FATAL_ERROR "The usb_library_rp2040 library requires the Pico SDK to be imported and initialized before adding this directory.")
 endif()
 
 add_library(usb_library_rp2040
