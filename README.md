@@ -33,7 +33,7 @@ To use the library:
 
 ## API
 
-### `void usb_device_init(void)`
+### `void usb_device_init(struct usb_device_configuration *config)`
 
 Initializes the USB peripheral in device mode using the provided configuration.
 
