@@ -13,6 +13,7 @@
 #include "pico/stdlib.h"
 
 #define ISOCHRONOUS_MASK 0x18000000u
+#define DPRAM_BLOCK_SIZE_SHIFT 6u
 
 #define usb_hw_set ((usb_hw_t *)hw_set_alias_untyped(usb_hw))
 #define usb_hw_clear ((usb_hw_t *)hw_clear_alias_untyped(usb_hw))
@@ -168,10 +169,10 @@ static volatile uint32_t *get_buffer_control(struct usb_endpoint_configuration *
 
 static volatile uint8_t *get_dpram_buffer(struct usb_endpoint_configuration *ep) {
     if (is_ep0(ep)) return &usb_dpram->ep0_buf_a[0];
-    uint buffer_blocks = ep->descriptor->wMaxPacketSize >> 6;
+    uint buffer_blocks = ep->descriptor->wMaxPacketSize >> DPRAM_BLOCK_SIZE_SHIFT;
     uint pre = dpram_epx_offset;
     dpram_epx_offset += buffer_blocks * (ep->double_buffer ? 2u : 1u);
-    return &usb_dpram->epx_data[pre << 6];
+    return &usb_dpram->epx_data[pre << DPRAM_BLOCK_SIZE_SHIFT];
 }
 
 static void setup_endpoint(struct usb_device_configuration *config, struct usb_endpoint_configuration *ep) {
@@ -302,13 +303,13 @@ static void handle_config_descriptor(volatile struct usb_setup_packet *pkt) {
 static void handle_string_descriptor(volatile struct usb_setup_packet *pkt) {
     uint8_t i = pkt->wValue & 0xff;
     uint8_t len = 0;
-    struct usb_device_configuration *control_config = usb_get_base_configuration();
+    struct usb_device_configuration *base_config = usb_get_base_configuration();
 
     if (i == 0) {
         len = 4;
-        memcpy(&ep0_buf[0], control_config->lang_descriptor, len);
+        memcpy(&ep0_buf[0], base_config->lang_descriptor, len);
     } else {
-        len = prepare_string_descriptor(control_config->descriptor_strings[i - 1]);
+        len = prepare_string_descriptor(base_config->descriptor_strings[i - 1]);
     }
 
     pkt->wLength = len;
@@ -589,7 +590,9 @@ struct usb_endpoint_configuration *usb_get_endpoint_configuration(uint8_t addr) 
     }
 
     for (uint8_t cfg_idx = 0; cfg_idx < usb_get_configuration_count(); cfg_idx++) {
-        struct usb_endpoint_configuration *endpoints = usb_get_configuration_by_index(cfg_idx)->endpoints;
+        struct usb_device_configuration *config = usb_get_configuration_by_index(cfg_idx);
+        if (!config) continue;
+        struct usb_endpoint_configuration *endpoints = config->endpoints;
         for (int i = 0; i < USB_NUM_ENDPOINTS; i++) {
             if (endpoints[i].descriptor && (endpoints[i].descriptor->bEndpointAddress == addr)) {
                 return &endpoints[i];
