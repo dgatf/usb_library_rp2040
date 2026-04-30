@@ -64,7 +64,7 @@ print("Request REQ_EP0_IN. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat)
 #print(response)
 
 # Request EP1 OUT
-size = 400
+size = 40000
 kBs = 0
 buffer = []
 size_buffer = [(size & 0xFF)]
@@ -84,7 +84,7 @@ for i in range(repeat):
 print("Request REQ_EP1_OUT. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat))
 
 # Request EP2 IN
-size = 400
+size = 40000
 kBs = 0
 size_buffer = [(size & 0xFF)]
 size_buffer.append(size >> 8)
@@ -96,4 +96,4 @@ for i in range(repeat):
     c = b - a
     kBs += (size / 1024) / (c.microseconds / 1000000)
 print("Request REQ_EP2_IN. Size: %u bytes. Speed: %u kBs" % (size, kBs / repeat))
-print(response)
+#print(response)
