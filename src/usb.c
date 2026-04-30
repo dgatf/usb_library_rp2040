@@ -419,14 +419,14 @@ static uint start_data_packet(struct usb_endpoint_configuration *ep) {
     } else {
         if (ep->is_start) {
             len = prepare_buffer_a(ep);
-            len += prepare_buffer_b(ep);
+            if (ep->queued_pos < ep->length) len += prepare_buffer_b(ep);
         } else {
             if (!(usb_hw->buf_cpu_should_handle & ep->bit)) {
                 len = prepare_buffer_a(ep);
-                len += prepare_buffer_b(ep);
+                if (ep->queued_pos < ep->length) len += prepare_buffer_b(ep);
             } else {
                 len = prepare_buffer_b(ep);
-                len += prepare_buffer_a(ep);
+                if (ep->queued_pos < ep->length) len += prepare_buffer_a(ep);
             }
         }
     }
